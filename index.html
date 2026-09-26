@@ -1,0 +1,1507 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>OCROWN - Food Delivery Marketplace</title>
+<style>
+  :root{
+    --green:#0B6E4F;
+    --green-dark:#08543C;
+    --amber:#F2A93B;
+    --bg:#FAFAF8;
+    --card:#FFFFFF;
+    --ink:#1C1C1E;
+    --muted:#6B6F76;
+    --line:#E7E5E1;
+    --danger:#C0392B;
+    --radius:14px;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;padding:0;}
+  html,body{
+    font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
+    background:var(--bg); color:var(--ink); min-height:100%;
+  }
+  a{color:inherit;text-decoration:none;}
+  button{font-family:inherit;cursor:pointer;}
+  input,select,textarea{font-family:inherit;}
+  img{max-width:100%;display:block;}
+
+  /* ---------- top bar ---------- */
+  #topbar{
+    position:sticky;top:0;z-index:50;background:var(--green);
+    color:#fff;padding:10px 14px;display:flex;align-items:center;gap:10px;
+  }
+  #topbar .logo{font-weight:800;font-size:20px;letter-spacing:-0.5px;}
+  #topbar .logo span{color:var(--amber);}
+  #topbar .spacer{flex:1;}
+  #topbar button.iconbtn{
+    background:rgba(255,255,255,.15);border:none;color:#fff;border-radius:10px;
+    padding:8px 10px;font-size:15px;position:relative;
+  }
+  #topbar button.iconbtn .badge{
+    position:absolute;top:-4px;right:-4px;background:var(--danger);color:#fff;
+    font-size:10px;border-radius:50%;min-width:16px;height:16px;line-height:16px;
+    text-align:center;padding:0 3px;
+  }
+  #searchRow{padding:10px 14px;background:var(--green);display:flex;gap:8px;}
+  #searchRow input{
+    flex:1;border:none;border-radius:10px;padding:10px 12px;font-size:14px;
+  }
+
+  /* ---------- layout ---------- */
+  #app{max-width:520px;margin:0 auto;padding-bottom:70px;min-height:70vh;}
+  .section-title{font-size:15px;font-weight:700;margin:18px 14px 8px;color:var(--ink);}
+  .hscroll{display:flex;gap:10px;overflow-x:auto;padding:2px 14px 10px;scrollbar-width:none;}
+  .hscroll::-webkit-scrollbar{display:none;}
+  .catchip{
+    flex:0 0 auto;background:var(--card);border:1px solid var(--line);border-radius:999px;
+    padding:8px 14px;font-size:13px;font-weight:600;white-space:nowrap;
+  }
+  .catchip.active{background:var(--green);color:#fff;border-color:var(--green);}
+
+  .rcard{
+    background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
+    margin:0 14px 14px;overflow:hidden;
+  }
+  .rcard .cover{width:100%;height:120px;object-fit:cover;background:var(--line);}
+  .rcard .body{padding:10px 12px;}
+  .rcard .row1{display:flex;align-items:center;gap:8px;}
+  .rcard .name{font-weight:700;font-size:15px;flex:1;}
+  .rcard .status{font-size:11px;font-weight:700;padding:2px 8px;border-radius:999px;}
+  .status.open{background:#E6F4EE;color:var(--green-dark);}
+  .status.closed{background:#F5E6E6;color:var(--danger);}
+  .rcard .meta{color:var(--muted);font-size:12.5px;margin-top:4px;}
+
+  .foodcard{
+    display:flex;gap:10px;background:var(--card);border:1px solid var(--line);
+    border-radius:var(--radius);margin:0 14px 10px;padding:10px;align-items:center;
+  }
+  .foodcard img{width:64px;height:64px;object-fit:cover;border-radius:10px;background:var(--line);}
+  .foodcard .info{flex:1;}
+  .foodcard .fname{font-weight:700;font-size:14px;}
+  .foodcard .fdesc{font-size:12px;color:var(--muted);margin:2px 0 4px;}
+  .foodcard .fprice{font-weight:700;color:var(--green-dark);font-size:13.5px;}
+  .foodcard .oos{color:var(--danger);font-weight:700;font-size:11.5px;}
+  .qtybtn{
+    background:var(--green);color:#fff;border:none;border-radius:8px;
+    width:30px;height:30px;font-size:16px;font-weight:700;
+  }
+  .qtybox{display:flex;align-items:center;gap:8px;}
+  .qtybox span{min-width:16px;text-align:center;font-weight:700;}
+
+  .btn{
+    display:inline-block;background:var(--green);color:#fff;border:none;
+    border-radius:10px;padding:12px 16px;font-size:14.5px;font-weight:700;text-align:center;
+  }
+  .btn.block{display:block;width:100%;}
+  .btn.amber{background:var(--amber);color:#3a2600;}
+  .btn.outline{background:transparent;color:var(--green);border:1.5px solid var(--green);}
+  .btn.danger{background:var(--danger);}
+  .btn.small{padding:8px 12px;font-size:13px;border-radius:8px;}
+  .btn[disabled]{opacity:.5;}
+
+  .field{margin:0 14px 12px;}
+  .field label{display:block;font-size:12.5px;font-weight:600;color:var(--muted);margin-bottom:4px;}
+  .field input,.field select,.field textarea{
+    width:100%;border:1px solid var(--line);border-radius:10px;padding:11px 12px;font-size:14.5px;background:#fff;
+  }
+  .field textarea{resize:vertical;min-height:70px;}
+
+  .card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);margin:0 14px 14px;padding:14px;}
+  .card h3{margin:0 0 10px;font-size:15px;}
+  .rowline{display:flex;justify-content:space-between;padding:6px 0;font-size:13.5px;}
+  .rowline.total{font-weight:800;border-top:1px solid var(--line);margin-top:4px;padding-top:10px;font-size:15px;}
+  .muted{color:var(--muted);}
+  .tag{display:inline-block;font-size:11px;font-weight:700;padding:3px 9px;border-radius:999px;background:#EFEDE8;color:var(--ink);}
+  .tag.pending{background:#FFF3D6;color:#8a6300;}
+  .tag.paid{background:#E6F4EE;color:var(--green-dark);}
+  .tag.rejected{background:#F5E6E6;color:var(--danger);}
+
+  .tabs{display:flex;gap:6px;padding:10px 14px;overflow-x:auto;}
+  .tabs button{
+    flex:0 0 auto;background:var(--card);border:1px solid var(--line);border-radius:999px;
+    padding:8px 14px;font-size:13px;font-weight:700;color:var(--muted);
+  }
+  .tabs button.active{background:var(--ink);color:#fff;border-color:var(--ink);}
+
+  .stat{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:12px;text-align:left;}
+  .statgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:0 14px 10px;}
+  .stat .num{font-size:20px;font-weight:800;}
+  .stat .lbl{font-size:11.5px;color:var(--muted);margin-top:2px;}
+
+  .listrow{
+    background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
+    margin:0 14px 10px;padding:12px;
+  }
+  .listrow .top{display:flex;justify-content:space-between;align-items:center;gap:8px;}
+  .listrow .top strong{font-size:14px;}
+  .listrow .sub{font-size:12px;color:var(--muted);margin-top:3px;}
+  .listrow .actions{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;}
+
+  /* bottom nav */
+  #bottomnav{
+    position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid var(--line);
+    display:flex;z-index:60;max-width:520px;margin:0 auto;
+  }
+  #bottomnav button{
+    flex:1;background:none;border:none;padding:9px 0 8px;font-size:11px;color:var(--muted);
+    display:flex;flex-direction:column;align-items:center;gap:3px;font-weight:600;
+  }
+  #bottomnav button .ic{font-size:18px;}
+  #bottomnav button.active{color:var(--green);}
+
+  .modalbg{
+    position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:100;display:flex;
+    align-items:flex-end;justify-content:center;
+  }
+  .modalbox{
+    background:#fff;width:100%;max-width:520px;border-radius:18px 18px 0 0;
+    max-height:88vh;overflow-y:auto;padding:16px 0 20px;
+  }
+  .modalbox h3{margin:0 14px 12px;}
+  .closex{position:absolute;top:14px;right:18px;font-size:20px;background:none;border:none;color:var(--muted);}
+
+  .hero{
+    background:linear-gradient(135deg,var(--green),var(--green-dark));color:#fff;
+    padding:22px 16px 26px;
+  }
+  .hero h1{margin:0 0 6px;font-size:21px;}
+  .hero p{margin:0;opacity:.9;font-size:13px;}
+
+  #toast{
+    position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:var(--ink);
+    color:#fff;padding:10px 16px;border-radius:10px;font-size:13.5px;z-index:200;opacity:0;
+    transition:opacity .25s;pointer-events:none;max-width:90%;text-align:center;
+  }
+  #toast.show{opacity:1;}
+
+  #authScreens{max-width:520px;margin:0 auto;padding:20px 0 40px;}
+  .empty{text-align:center;color:var(--muted);padding:40px 20px;font-size:13.5px;}
+  .linklike{color:var(--green);font-weight:700;background:none;border:none;font-size:13.5px;}
+  .imgpreview{width:100%;height:130px;object-fit:cover;border-radius:10px;background:var(--line);margin-top:6px;}
+  .roleSwitch{display:flex;gap:8px;padding:0 14px 6px;}
+  .roleSwitch button{flex:1;padding:10px;border-radius:10px;border:1px solid var(--line);background:#fff;font-weight:700;font-size:13px;}
+  .roleSwitch button.active{background:var(--green);color:#fff;border-color:var(--green);}
+</style>
+</head>
+<body>
+
+<div id="topbar">
+  <div class="logo" id="logoBtn">OCR<span>OWN</span></div>
+  <div class="spacer"></div>
+  <button class="iconbtn" id="notifBtn">🔔<span class="badge" id="notifBadge" style="display:none">0</span></button>
+  <button class="iconbtn" id="cartBtn">🛒<span class="badge" id="cartBadge" style="display:none">0</span></button>
+  <button class="iconbtn" id="accountBtn">👤</button>
+</div>
+
+<div id="app"></div>
+
+<div id="bottomnav" style="display:none"></div>
+<div id="toast"></div>
+<div id="modalRoot"></div>
+
+<!-- Firebase (compat SDK) -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+
+<script>
+/* =========================================================================
+   OCROWN - Multi-vendor food delivery marketplace (Firebase free-tier MVP)
+   Single-file build for GitHub Pages.
+
+   >>> PASTE YOUR FIREBASE CONFIG BELOW BEFORE DEPLOYING <<<
+   ========================================================================= */
+var firebaseConfig = {
+  apiKey: "AIzaSyAW606_4tcIJcovZa-bAI30mSI_W6aHiYA",
+  authDomain: "ocrown-restaurant.firebaseapp.com",
+  projectId: "ocrown-restaurant",
+  storageBucket: "ocrown-restaurant.firebasestorage.app",
+  messagingSenderId: "312914911792",
+  appId: "1:312914911792:web:98a5fdbe60f7ea739bc3f5"
+};
+
+var ADMIN_EMAIL = "oladejiridwanopeyemi@gmail.com";
+
+firebase.initializeApp(firebaseConfig);
+var auth = firebase.auth();
+var db = firebase.firestore();
+
+/* -------------------------------------------------------------------------
+   ORDER STATUS FLOW (audit-tracked, role-restricted transitions)
+   ------------------------------------------------------------------------- */
+var ORDER_FLOW = [
+  "PENDING_PAYMENT","PAYMENT_SUBMITTED","PAYMENT_CONFIRMED","RESTAURANT_ACCEPTED",
+  "PREPARING","READY_FOR_PICKUP","RIDER_ASSIGNED","PICKED_UP","ON_THE_WAY","DELIVERED"
+];
+// who is allowed to move an order INTO each status
+var STATUS_OWNER = {
+  PAYMENT_SUBMITTED:"customer", PAYMENT_CONFIRMED:"admin", RESTAURANT_ACCEPTED:"restaurant",
+  PREPARING:"restaurant", READY_FOR_PICKUP:"restaurant", RIDER_ASSIGNED:"admin",
+  PICKED_UP:"rider", ON_THE_WAY:"rider", DELIVERED:"rider", CANCELLED:"admin"
+};
+var RIDER_STATUSES = ["Offline","Available","Assigned","Picking Up","Picked Up","On The Way","Delivered"];
+
+/* -------------------------------------------------------------------------
+   GLOBAL STATE
+   ------------------------------------------------------------------------- */
+var state = {
+  user:null,            // firebase auth user
+  profile:null,         // users/{uid} doc
+  role:"guest",         // guest | customer | restaurant | rider | admin
+  cart:[],              // [{foodId,name,price,qty,restaurantId,branchId,restaurantName}]
+  settings:{ bankName:"", accountName:"", accountNumber:"", commissionPct:15, deliveryFee:500,
+             platformFee:0, pointsPerOrder:10, minPointsRedeem:100, pointValue:1, maxPointsPerOrder:500 },
+  notifCache:[],
+  view:{name:"home"},
+  cache:{restaurants:null, categories:null}
+};
+
+function toast(msg){
+  var t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show');
+  clearTimeout(window._toastTimer);
+  window._toastTimer=setTimeout(function(){t.classList.remove('show');},2600);
+}
+
+function fmtNaira(n){ n=Number(n||0); return "₦"+n.toLocaleString('en-NG',{maximumFractionDigits:0}); }
+function nowTS(){ return firebase.firestore.FieldValue.serverTimestamp(); }
+function uid(){ return 'id_'+Date.now().toString(36)+Math.random().toString(36).slice(2,8); }
+
+/* -------------------------------------------------------------------------
+   IMAGE COMPRESSION (canvas) — resize + re-encode until well under 1MB.
+   No Firebase Storage on the free (Spark) plan, so compressed images are
+   stored directly as base64 strings inside the Firestore document itself.
+   Target is kept well below the 1MB Firestore document cap to leave room
+   for the doc's other fields and the ~33% base64 size overhead.
+   ------------------------------------------------------------------------- */
+var IMAGE_TARGET_BYTES = 450000; // raw binary target before base64 encoding
+
+function compressImage(file, maxDim, cb){
+  maxDim = maxDim || 900;
+  var reader = new FileReader();
+  reader.onload = function(e){
+    var img = new Image();
+    img.onload = function(){
+      var w=img.width, h=img.height;
+      if (w>h && w>maxDim){ h=Math.round(h*maxDim/w); w=maxDim; }
+      else if (h>=w && h>maxDim){ w=Math.round(w*maxDim/h); h=maxDim; }
+      var canvas=document.createElement('canvas');
+      canvas.width=w; canvas.height=h;
+      canvas.getContext('2d').drawImage(img,0,0,w,h);
+      var quality=0.8;
+      function tryEncode(){
+        canvas.toBlob(function(blob){
+          if (!blob){ cb(null); return; }
+          if (blob.size>IMAGE_TARGET_BYTES && quality>0.3){
+            quality -= 0.1; tryEncode(); return;
+          }
+          if (blob.size>IMAGE_TARGET_BYTES && maxDim>400){
+            compressImage(file, maxDim-150, cb); return;
+          }
+          cb(blob);
+        }, 'image/jpeg', quality);
+      }
+      tryEncode();
+    };
+    img.onerror = function(){ cb(null); };
+    img.src = e.target.result;
+  };
+  reader.onerror = function(){ cb(null); };
+  reader.readAsDataURL(file);
+}
+
+function blobToBase64(blob, cb){
+  var reader = new FileReader();
+  reader.onload = function(e){ cb(e.target.result); };
+  reader.onerror = function(){ cb(null); };
+  reader.readAsDataURL(blob);
+}
+
+// Compresses the image and hands back a base64 data URL to store directly
+// in a Firestore field (path kept as an argument for call-site clarity only).
+function uploadImage(path, file, cb){
+  compressImage(file, 900, function(blob){
+    if (!blob){ toast('Image could not be processed'); cb(null); return; }
+    if (blob.size > 900000){ toast('Image still too large after compression'); cb(null); return; }
+    blobToBase64(blob, function(dataUrl){ cb(dataUrl); });
+  });
+}
+
+/* -------------------------------------------------------------------------
+   FIRESTORE HELPERS  (no orderBy+where combos — fetch then sort client-side)
+   ------------------------------------------------------------------------- */
+function colGet(name, whereClauses, cb){
+  var ref = db.collection(name);
+  (whereClauses||[]).forEach(function(w){ ref = ref.where(w[0], w[1], w[2]); });
+  ref.get().then(function(snap){
+    var out=[]; snap.forEach(function(d){ out.push(Object.assign({id:d.id}, d.data())); });
+    cb(out);
+  }).catch(function(err){ console.error(name,err); toast('Load error: '+err.message); cb([]); });
+}
+function docSet(name, id, data, cb){
+  db.collection(name).doc(id).set(data, {merge:true}).then(function(){ cb&&cb(true); })
+    .catch(function(err){ toast('Save error: '+err.message); cb&&cb(false); });
+}
+function docAdd(name, data, cb){
+  db.collection(name).add(data).then(function(ref){ cb&&cb(ref.id); })
+    .catch(function(err){ toast('Save error: '+err.message); cb&&cb(null); });
+}
+function docGet(name, id, cb){
+  db.collection(name).doc(id).get().then(function(d){
+    cb(d.exists? Object.assign({id:d.id}, d.data()) : null);
+  }).catch(function(err){ cb(null); });
+}
+function sortByCreated(arr){
+  arr.sort(function(a,b){
+    var ta=a.createdAt&&a.createdAt.seconds?a.createdAt.seconds:0;
+    var tb=b.createdAt&&b.createdAt.seconds?b.createdAt.seconds:0;
+    return tb-ta;
+  });
+  return arr;
+}
+
+/* -------------------------------------------------------------------------
+   AUTH
+   ------------------------------------------------------------------------- */
+function registerAccount(role, email, password, extra, cb){
+  auth.createUserWithEmailAndPassword(email, password).then(function(cred){
+    var isAdmin = email.trim().toLowerCase() === ADMIN_EMAIL.toLowerCase();
+    var baseRole = isAdmin ? 'admin' : role;
+    var profile = Object.assign({
+      email:email, role:baseRole, createdAt:nowTS(),
+      status: (baseRole==='restaurant'||baseRole==='rider') ? 'PENDING' : 'ACTIVE'
+    }, extra||{});
+    docSet('users', cred.user.uid, profile, function(){
+      if (baseRole==='restaurant'){
+        var restId = cred.user.uid;
+        docSet('restaurants', restId, {
+          ownerId:cred.user.uid, name:extra.businessName||'', phone:extra.phone||'',
+          description:'', logoUrl:'', coverUrl:'', hours:'', deliveryAreas:'',
+          status:'PENDING', commissionPct:null, createdAt:nowTS()
+        });
+      }
+      if (baseRole==='rider'){
+        docSet('riders', cred.user.uid, {
+          userId:cred.user.uid, name:extra.name||'', phone:extra.phone||'',
+          vehicle:extra.vehicle||'', idInfo:extra.idInfo||'', photoUrl:'',
+          status:'PENDING', availability:'Offline', createdAt:nowTS()
+        });
+      }
+      if (baseRole==='customer' || isAdmin){
+        docSet('loyaltyAccounts', cred.user.uid, {userId:cred.user.uid, points:0});
+      }
+      notifyAdmin('New '+baseRole+' registration: '+(extra.name||extra.businessName||email));
+      cb(true);
+    });
+  }).catch(function(err){ toast(err.message); cb(false); });
+}
+
+function loginAccount(email, password, cb){
+  auth.signInWithEmailAndPassword(email,password).then(function(){cb(true);})
+    .catch(function(err){ toast(err.message); cb(false); });
+}
+
+function notifyAdmin(msg){
+  docAdd('notifications', {toRole:'admin', toId:null, message:msg, read:false, createdAt:nowTS()});
+}
+function notifyUser(uidTarget, msg){
+  docAdd('notifications', {toRole:null, toId:uidTarget, message:msg, read:false, createdAt:nowTS()});
+}
+
+auth.onAuthStateChanged(function(user){
+  state.user = user;
+  if (!user){ state.role='guest'; state.profile=null; render(); return; }
+  docGet('users', user.uid, function(p){
+    state.profile = p || {role:'customer', status:'ACTIVE'};
+    state.role = state.profile.role || 'customer';
+    loadSettings(function(){ render(); loadNotifCount(); });
+  });
+});
+
+function loadSettings(cb){
+  docGet('settings','platform', function(s){
+    if (s) state.settings = Object.assign(state.settings, s);
+    cb&&cb();
+  });
+}
+
+function loadNotifCount(){
+  if (!state.user) return;
+  colGet('notifications', [], function(all){
+    var mine = all.filter(function(n){
+      return (n.toId===state.user.uid) || (n.toRole===state.role && !n.toId);
+    });
+    state.notifCache = sortByCreated(mine);
+    var unread = mine.filter(function(n){return !n.read;}).length;
+    var b=document.getElementById('notifBadge');
+    if (unread>0){ b.style.display='block'; b.textContent=unread; } else { b.style.display='none'; }
+  });
+}
+
+/* =========================================================================
+   RENDER / ROUTER
+   ========================================================================= */
+var $app = document.getElementById('app');
+
+function go(view){ state.view = view; render(); window.scrollTo(0,0); }
+
+function render(){
+  updateBottomNav();
+  updateCartBadge();
+  var v = state.view.name;
+  if (v==='home') return renderHome();
+  if (v==='restaurant') return renderRestaurant(state.view.id);
+  if (v==='cart') return renderCart();
+  if (v==='checkout') return renderCheckout();
+  if (v==='payment') return renderPayment(state.view.orderId);
+  if (v==='orders') return renderOrdersList();
+  if (v==='orderDetail') return renderOrderDetail(state.view.id);
+  if (v==='profile') return renderProfile();
+  if (v==='loyalty') return renderLoyalty();
+  if (v==='auth') return renderAuth();
+  if (v==='restDashboard') return renderRestDashboard();
+  if (v==='riderDashboard') return renderRiderDashboard();
+  if (v==='adminDashboard') return renderAdminDashboard();
+  renderHome();
+}
+
+function updateBottomNav(){
+  var bn = document.getElementById('bottomnav');
+  var items = [];
+  if (state.role==='restaurant'){
+    bn.style.display='flex';
+    items = [
+      {k:'restDashboard',ic:'🏪',lbl:'Dashboard'},
+      {k:'profile',ic:'👤',lbl:'Profile'}
+    ];
+  } else if (state.role==='rider'){
+    bn.style.display='flex';
+    items = [
+      {k:'riderDashboard',ic:'🏍️',lbl:'Deliveries'},
+      {k:'profile',ic:'👤',lbl:'Profile'}
+    ];
+  } else if (state.role==='admin'){
+    bn.style.display='flex';
+    items = [
+      {k:'adminDashboard',ic:'📊',lbl:'Admin'},
+      {k:'profile',ic:'👤',lbl:'Profile'}
+    ];
+  } else {
+    bn.style.display='flex';
+    items = [
+      {k:'home',ic:'🏠',lbl:'Home'},
+      {k:'orders',ic:'📦',lbl:'Orders'},
+      {k:'cart',ic:'🛒',lbl:'Cart'},
+      {k:'loyalty',ic:'🎁',lbl:'Rewards'},
+      {k:'profile',ic:'👤',lbl:'Profile'}
+    ];
+  }
+  bn.innerHTML='';
+  items.forEach(function(it){
+    var b=document.createElement('button');
+    b.className = state.view.name===it.k?'active':'';
+    b.innerHTML='<span class="ic">'+it.ic+'</span>'+it.lbl;
+    b.addEventListener('click', function(){ go({name:it.k}); });
+    bn.appendChild(b);
+  });
+}
+
+function updateCartBadge(){
+  var b=document.getElementById('cartBadge');
+  var count = state.cart.reduce(function(s,i){return s+i.qty;},0);
+  if (count>0){ b.style.display='block'; b.textContent=count; } else { b.style.display='none'; }
+}
+
+document.getElementById('cartBtn').addEventListener('click', function(){ go({name:'cart'}); });
+document.getElementById('accountBtn').addEventListener('click', function(){
+  if (!state.user){ go({name:'auth'}); return; }
+  go({name:'profile'});
+});
+document.getElementById('logoBtn').addEventListener('click', function(){ go({name:'home'}); });
+document.getElementById('notifBtn').addEventListener('click', openNotifModal);
+
+/* ---------- modal helper ---------- */
+function openModal(innerHtml){
+  var root=document.getElementById('modalRoot');
+  root.innerHTML = '<div class="modalbg"><div class="modalbox" style="position:relative">'+
+    '<button class="closex" id="modalCloseBtn">✕</button>'+innerHtml+'</div></div>';
+  document.getElementById('modalCloseBtn').addEventListener('click', closeModal);
+  root.querySelector('.modalbg').addEventListener('click', function(e){ if(e.target===this) closeModal(); });
+}
+function closeModal(){ document.getElementById('modalRoot').innerHTML=''; }
+
+function openNotifModal(){
+  if (!state.user){ toast('Login to view notifications'); return; }
+  loadNotifCount();
+  setTimeout(function(){
+    var html = '<h3>Notifications</h3>';
+    if (state.notifCache.length===0) html += '<p class="empty">No notifications yet</p>';
+    state.notifCache.forEach(function(n){
+      html += '<div class="listrow"><div class="sub">'+escapeHtml(n.message)+'</div></div>';
+    });
+    openModal(html);
+    state.notifCache.forEach(function(n){
+      if (!n.read) db.collection('notifications').doc(n.id).update({read:true}).catch(function(){});
+    });
+  }, 200);
+}
+
+function escapeHtml(s){
+  s = String(s==null?'':s);
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+/* =========================================================================
+   HOME / DISCOVERY
+   ========================================================================= */
+var FOOD_CATEGORIES = ["All","Rice","Swallow","Grills","Pastries","Drinks","Soups","Snacks","Continental"];
+var activeCategory = "All";
+
+function renderHome(){
+  $app.innerHTML = ''
+   + '<div class="hero"><h1>Good food, delivered.</h1><p>Order from restaurants near you across Nigeria.</p></div>'
+   + '<div class="section-title">Categories</div>'
+   + '<div class="hscroll" id="catRow"></div>'
+   + '<div class="section-title">Restaurants</div>'
+   + '<div id="restList"></div>';
+
+  var catRow = document.getElementById('catRow');
+  FOOD_CATEGORIES.forEach(function(c){
+    var chip=document.createElement('button');
+    chip.className='catchip'+(c===activeCategory?' active':'');
+    chip.textContent=c;
+    chip.addEventListener('click', function(){ activeCategory=c; renderHome(); });
+    catRow.appendChild(chip);
+  });
+
+  colGet('restaurants', [['status','==','APPROVED']], function(list){
+    var restList = document.getElementById('restList');
+    var filtered = list.filter(function(r){
+      return activeCategory==='All' || (r.categories||[]).indexOf(activeCategory)>-1;
+    });
+    if (filtered.length===0){ restList.innerHTML='<div class="empty">No restaurants yet in this category. Check back soon!</div>'; return; }
+    restList.innerHTML='';
+    sortByCreated(filtered).forEach(function(r){
+      var card=document.createElement('div');
+      card.className='rcard';
+      card.innerHTML =
+        '<img class="cover" src="'+(r.coverUrl||placeholderImg())+'">' +
+        '<div class="body"><div class="row1"><div class="name">'+escapeHtml(r.name)+'</div>'+
+        '<span class="status '+(r.isOpen===false?'closed':'open')+'">'+(r.isOpen===false?'Closed':'Open')+'</span></div>'+
+        '<div class="meta">'+escapeHtml((r.categories||[]).join(', '))+' · ⭐ '+ (r.rating? r.rating.toFixed(1):'New') +
+        ' · '+fmtNaira(r.deliveryFee!=null?r.deliveryFee:state.settings.deliveryFee)+' delivery</div></div>';
+      card.addEventListener('click', function(){ go({name:'restaurant', id:r.id}); });
+      restList.appendChild(card);
+    });
+  });
+}
+function placeholderImg(){
+  return 'data:image/svg+xml;utf8,'+encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="400" height="200"><rect width="100%" height="100%" fill="%23E7E5E1"/></svg>');
+}
+
+/* =========================================================================
+   RESTAURANT PAGE
+   ========================================================================= */
+function renderRestaurant(restId){
+  $app.innerHTML = '<div id="restPage"><div class="empty">Loading...</div></div>';
+  docGet('restaurants', restId, function(r){
+    if (!r){ $app.innerHTML='<div class="empty">Restaurant not found</div>'; return; }
+    colGet('branches', [['restaurantId','==','']], function(){}); // no-op placeholder to keep query pattern consistent
+    colGet('foods', [['restaurantId','==',restId],['available','==',true]], function(foods){
+      var byCat = {};
+      foods.forEach(function(f){
+        var c=f.category||'Other'; byCat[c]=byCat[c]||[]; byCat[c].push(f);
+      });
+      var html =
+        '<img class="cover" style="height:150px;object-fit:cover;width:100%" src="'+(r.coverUrl||placeholderImg())+'">' +
+        '<div style="padding:12px 14px">' +
+          '<h2 style="margin:0 0 4px">'+escapeHtml(r.name)+'</h2>' +
+          '<div class="muted" style="font-size:13px">'+escapeHtml(r.description||'')+'</div>' +
+          '<div class="muted" style="font-size:12.5px;margin-top:6px">🕒 '+escapeHtml(r.hours||'')+' · 🚚 '+escapeHtml(r.deliveryAreas||'')+'</div>' +
+        '</div>';
+      Object.keys(byCat).forEach(function(cat){
+        html += '<div class="section-title">'+escapeHtml(cat)+'</div><div class="foodListCat" data-cat="'+escapeHtml(cat)+'"></div>';
+      });
+      if (foods.length===0) html += '<div class="empty">No menu items yet.</div>';
+      $app.innerHTML = html;
+      Object.keys(byCat).forEach(function(cat){
+        var wrap = $app.querySelector('.foodListCat[data-cat="'+CSS.escape(cat)+'"]');
+        byCat[cat].forEach(function(f){ wrap.appendChild(foodCardEl(f, r)); });
+      });
+    });
+  });
+}
+
+function foodCardEl(f, restaurant){
+  var el=document.createElement('div');
+  el.className='foodcard';
+  var inCart = state.cart.find(function(i){return i.foodId===f.id;});
+  el.innerHTML =
+    '<img src="'+(f.imageUrl||placeholderImg())+'">' +
+    '<div class="info"><div class="fname">'+escapeHtml(f.name)+'</div>' +
+    '<div class="fdesc">'+escapeHtml(f.description||'')+'</div>' +
+    '<div class="fprice">'+fmtNaira(f.price)+'</div></div>' +
+    '<div class="addWrap"></div>';
+  var addWrap = el.querySelector('.addWrap');
+  function drawAdd(){
+    addWrap.innerHTML='';
+    if (!f.available){ addWrap.innerHTML='<span class="oos">OUT OF STOCK</span>'; return; }
+    var item = state.cart.find(function(i){return i.foodId===f.id;});
+    if (!item){
+      var b=document.createElement('button'); b.className='qtybtn'; b.textContent='+';
+      b.addEventListener('click', function(){ addToCart(f, restaurant); drawAdd(); });
+      addWrap.appendChild(b);
+    } else {
+      var box=document.createElement('div'); box.className='qtybox';
+      var minus=document.createElement('button'); minus.className='qtybtn'; minus.textContent='-';
+      var span=document.createElement('span'); span.textContent=item.qty;
+      var plus=document.createElement('button'); plus.className='qtybtn'; plus.textContent='+';
+      minus.addEventListener('click', function(){ changeQty(f.id,-1); drawAdd(); });
+      plus.addEventListener('click', function(){ changeQty(f.id,1); drawAdd(); });
+      box.appendChild(minus); box.appendChild(span); box.appendChild(plus);
+      addWrap.appendChild(box);
+    }
+  }
+  drawAdd();
+  return el;
+}
+
+function addToCart(f, restaurant){
+  if (state.cart.length>0 && state.cart[0].restaurantId !== f.restaurantId){
+    if (!confirm('Your cart has items from another restaurant. Clear cart and add this item instead?')) return;
+    state.cart = [];
+  }
+  var existing = state.cart.find(function(i){return i.foodId===f.id;});
+  if (existing){ existing.qty++; }
+  else {
+    state.cart.push({
+      foodId:f.id, name:f.name, price:f.price, qty:1,
+      restaurantId:f.restaurantId, branchId:f.branchId||null, restaurantName:restaurant.name
+    });
+  }
+  updateCartBadge();
+  toast(f.name+' added to cart');
+}
+function changeQty(foodId, delta){
+  var item = state.cart.find(function(i){return i.foodId===foodId;});
+  if (!item) return;
+  item.qty += delta;
+  if (item.qty<=0) state.cart = state.cart.filter(function(i){return i.foodId!==foodId;});
+  updateCartBadge();
+}
+
+/* =========================================================================
+   CART / CHECKOUT / PAYMENT
+   ========================================================================= */
+function renderCart(){
+  var deliveryFee = state.settings.deliveryFee;
+  var subtotal = state.cart.reduce(function(s,i){return s+i.price*i.qty;},0);
+  var html = '<div class="section-title">Your Cart</div>';
+  if (state.cart.length===0){
+    html += '<div class="empty">Your cart is empty. Go find something delicious!</div>';
+    $app.innerHTML = html; return;
+  }
+  html += '<div class="card">';
+  state.cart.forEach(function(i){
+    html += '<div class="rowline"><span>'+escapeHtml(i.name)+' x'+i.qty+'</span><span>'+fmtNaira(i.price*i.qty)+'</span></div>';
+  });
+  html += '<div class="rowline"><span>Delivery fee</span><span>'+fmtNaira(deliveryFee)+'</span></div>';
+  html += '<div class="rowline total"><span>Total</span><span>'+fmtNaira(subtotal+deliveryFee)+'</span></div>';
+  html += '</div>' +
+    '<div style="padding:0 14px"><button class="btn block" id="clearCartBtn" style="background:transparent;color:var(--danger);border:1px solid var(--danger);margin-bottom:10px">Clear Cart</button>' +
+    '<button class="btn block" id="checkoutBtn">Proceed to Checkout</button></div>';
+  $app.innerHTML = html;
+  document.getElementById('clearCartBtn').addEventListener('click', function(){ state.cart=[]; renderCart(); updateCartBadge(); });
+  document.getElementById('checkoutBtn').addEventListener('click', function(){
+    if (!state.user){ toast('Please login to checkout'); go({name:'auth'}); return; }
+    go({name:'checkout'});
+  });
+}
+
+function renderCheckout(){
+  if (state.cart.length===0){ go({name:'home'}); return; }
+  var deliveryFee = state.settings.deliveryFee;
+  var subtotal = state.cart.reduce(function(s,i){return s+i.price*i.qty;},0);
+  $app.innerHTML =
+    '<div class="section-title">Checkout</div>' +
+    '<div class="field"><label>Full name</label><input id="ckName" value="'+escapeHtml((state.profile&&state.profile.name)||'')+'"></div>' +
+    '<div class="field"><label>Phone number</label><input id="ckPhone" value="'+escapeHtml((state.profile&&state.profile.phone)||'')+'"></div>' +
+    '<div class="field"><label>Delivery address</label><textarea id="ckAddress">'+escapeHtml((state.profile&&state.profile.address)||'')+'</textarea></div>' +
+    '<div class="field"><label>Delivery instructions (optional)</label><input id="ckNote"></div>' +
+    '<div class="card"><div class="rowline"><span>Subtotal</span><span>'+fmtNaira(subtotal)+'</span></div>' +
+    '<div class="rowline"><span>Delivery fee</span><span>'+fmtNaira(deliveryFee)+'</span></div>' +
+    '<div class="rowline total"><span>Total</span><span>'+fmtNaira(subtotal+deliveryFee)+'</span></div></div>' +
+    '<div style="padding:0 14px"><button class="btn block" id="placeOrderBtn">Place Order (Pay by Bank Transfer)</button></div>';
+
+  document.getElementById('placeOrderBtn').addEventListener('click', function(){
+    var name=document.getElementById('ckName').value.trim();
+    var phone=document.getElementById('ckPhone').value.trim();
+    var address=document.getElementById('ckAddress').value.trim();
+    var note=document.getElementById('ckNote').value.trim();
+    if (!name||!phone||!address){ toast('Please fill in all required fields'); return; }
+    var order = {
+      customerId: state.user.uid, customerName:name, customerPhone:phone,
+      deliveryAddress:address, deliveryNote:note,
+      restaurantId: state.cart[0].restaurantId, restaurantName: state.cart[0].restaurantName,
+      branchId: state.cart[0].branchId || null,
+      items: state.cart.map(function(i){return {foodId:i.foodId,name:i.name,price:i.price,qty:i.qty};}),
+      subtotal: subtotal, deliveryFee: deliveryFee, discount:0,
+      total: subtotal+deliveryFee,
+      status: 'PENDING_PAYMENT', paymentStatus:'PENDING',
+      statusHistory:[{status:'PENDING_PAYMENT', at:Date.now(), by:state.user.uid, from:null}],
+      createdAt: nowTS()
+    };
+    docAdd('orders', order, function(orderId){
+      if (!orderId){ return; }
+      state.cart = [];
+      updateCartBadge();
+      notifyAdmin('New order #'+orderId.slice(-6).toUpperCase());
+      go({name:'payment', orderId:orderId});
+    });
+  });
+}
+
+function renderPayment(orderId){
+  docGet('orders', orderId, function(order){
+    if (!order){ $app.innerHTML='<div class="empty">Order not found</div>'; return; }
+    $app.innerHTML =
+      '<div class="section-title">Complete Payment</div>' +
+      '<div class="card"><div class="rowline total"><span>Amount to pay</span><span>'+fmtNaira(order.total)+'</span></div>' +
+      '<div class="rowline"><span>Bank Name</span><span>'+escapeHtml(state.settings.bankName||'—')+'</span></div>' +
+      '<div class="rowline"><span>Account Name</span><span>'+escapeHtml(state.settings.accountName||'—')+'</span></div>' +
+      '<div class="rowline"><span>Account Number</span><span>'+escapeHtml(state.settings.accountNumber||'—')+'</span></div></div>' +
+      '<div class="field"><label>Transfer reference / description</label><input id="payRef"></div>' +
+      '<div class="field"><label>Amount transferred (₦)</label><input id="payAmount" type="number" value="'+order.total+'"></div>' +
+      '<div class="field"><label>Payment receipt / screenshot</label><input id="payReceipt" type="file" accept="image/*"><img id="receiptPreview" class="imgpreview" style="display:none"></div>' +
+      '<div style="padding:0 14px"><button class="btn block" id="submitPayBtn">Submit Payment for Verification</button></div>' +
+      '<p class="empty">Your order status is <b>PENDING PAYMENT</b>. It will move forward once the admin confirms your transfer.</p>';
+
+    document.getElementById('payReceipt').addEventListener('change', function(e){
+      var f=e.target.files[0]; if (!f) return;
+      var img=document.getElementById('receiptPreview');
+      var rd=new FileReader(); rd.onload=function(ev){ img.src=ev.target.result; img.style.display='block'; };
+      rd.readAsDataURL(f);
+    });
+
+    document.getElementById('submitPayBtn').addEventListener('click', function(){
+      var ref=document.getElementById('payRef').value.trim();
+      var amt=document.getElementById('payAmount').value;
+      var fileInput=document.getElementById('payReceipt');
+      if (!ref){ toast('Please enter your transfer reference'); return; }
+      var btn=document.getElementById('submitPayBtn'); btn.disabled=true; btn.textContent='Submitting...';
+      function finish(receiptUrl){
+        docAdd('payments', {
+          orderId:orderId, customerId:state.user.uid, reference:ref, amount:Number(amt),
+          receiptUrl:receiptUrl||'', status:'SUBMITTED', createdAt:nowTS()
+        }, function(){
+          advanceOrderStatus(orderId, 'PAYMENT_SUBMITTED', {paymentStatus:'SUBMITTED'});
+          notifyAdmin('Payment submitted for order #'+orderId.slice(-6).toUpperCase());
+          toast('Payment submitted! Awaiting admin confirmation.');
+          go({name:'orderDetail', id:orderId});
+        });
+      }
+      if (fileInput.files[0]){
+        uploadImage('receipts/'+orderId, fileInput.files[0], function(url){ finish(url); });
+      } else { finish(''); }
+    });
+  });
+}
+
+function advanceOrderStatus(orderId, newStatus, extraFields){
+  docGet('orders', orderId, function(order){
+    if (!order) return;
+    var hist = order.statusHistory || [];
+    hist.push({status:newStatus, at:Date.now(), by:(state.user?state.user.uid:'system'), from:order.status});
+    var update = Object.assign({status:newStatus, statusHistory:hist}, extraFields||{});
+    docSet('orders', orderId, update, function(ok){
+      if (ok && newStatus==='DELIVERED') createSettlementsAndLoyalty(orderId);
+    });
+  });
+}
+
+/* =========================================================================
+   ORDERS (customer)
+   ========================================================================= */
+function renderOrdersList(){
+  if (!state.user){ $app.innerHTML='<div class="empty">Login to view your orders</div>'; return; }
+  $app.innerHTML = '<div class="section-title">Your Orders</div><div id="ordersHolder"><div class="empty">Loading...</div></div>';
+  colGet('orders', [['customerId','==',state.user.uid]], function(list){
+    var holder=document.getElementById('ordersHolder');
+    list = sortByCreated(list);
+    if (list.length===0){ holder.innerHTML='<div class="empty">No orders yet</div>'; return; }
+    holder.innerHTML='';
+    list.forEach(function(o){
+      var row=document.createElement('div'); row.className='listrow';
+      row.innerHTML='<div class="top"><strong>#'+o.id.slice(-6).toUpperCase()+'</strong><span class="tag">'+o.status.replace(/_/g,' ')+'</span></div>'+
+        '<div class="sub">'+escapeHtml(o.restaurantName)+' · '+fmtNaira(o.total)+'</div>';
+      row.addEventListener('click', function(){ go({name:'orderDetail', id:o.id}); });
+      holder.appendChild(row);
+    });
+  });
+}
+
+function renderOrderDetail(orderId){
+  $app.innerHTML = '<div class="empty">Loading...</div>';
+  docGet('orders', orderId, function(o){
+    if (!o){ $app.innerHTML='<div class="empty">Order not found</div>'; return; }
+    var itemsHtml = o.items.map(function(i){return '<div class="rowline"><span>'+escapeHtml(i.name)+' x'+i.qty+'</span><span>'+fmtNaira(i.price*i.qty)+'</span></div>';}).join('');
+    var stepsHtml = ORDER_FLOW.map(function(s){
+      var done = ORDER_FLOW.indexOf(o.status) >= ORDER_FLOW.indexOf(s);
+      return '<div class="rowline"><span>'+(done?'✅':'⬜')+' '+s.replace(/_/g,' ')+'</span></div>';
+    }).join('');
+    $app.innerHTML =
+      '<div class="section-title">Order #'+o.id.slice(-6).toUpperCase()+'</div>' +
+      '<div class="card"><h3>Items</h3>'+itemsHtml+
+      '<div class="rowline"><span>Delivery</span><span>'+fmtNaira(o.deliveryFee)+'</span></div>'+
+      '<div class="rowline total"><span>Total</span><span>'+fmtNaira(o.total)+'</span></div></div>' +
+      '<div class="card"><h3>Status</h3>'+stepsHtml+'</div>' +
+      (o.riderId ? '<div class="card"><h3>Rider</h3><div class="rowline"><span>'+escapeHtml(o.riderName||'')+'</span><span>'+escapeHtml(o.riderPhone||'')+'</span></div></div>' : '') +
+      (o.status==='PENDING_PAYMENT' ? '<div style="padding:0 14px"><button class="btn block" id="payNowBtn">Complete Payment</button></div>' : '');
+    var payBtn=document.getElementById('payNowBtn');
+    if (payBtn) payBtn.addEventListener('click', function(){ go({name:'payment', orderId:o.id}); });
+  });
+}
+
+/* =========================================================================
+   LOYALTY
+   ========================================================================= */
+function renderLoyalty(){
+  if (!state.user){ $app.innerHTML='<div class="empty">Login to view your rewards</div>'; return; }
+  docGet('loyaltyAccounts', state.user.uid, function(acc){
+    var pts = acc? acc.points:0;
+    $app.innerHTML =
+      '<div class="section-title">Loyalty Rewards</div>' +
+      '<div class="card" style="text-align:center"><div style="font-size:34px;font-weight:800;color:var(--green-dark)">'+pts+'</div>' +
+      '<div class="muted">points available</div></div>' +
+      '<div class="card"><h3>How it works</h3>' +
+      '<div class="rowline"><span>Earn per completed order</span><span>'+state.settings.pointsPerOrder+' pts</span></div>' +
+      '<div class="rowline"><span>Minimum to redeem</span><span>'+state.settings.minPointsRedeem+' pts</span></div>' +
+      '<div class="rowline"><span>Value per point</span><span>'+fmtNaira(state.settings.pointValue)+'</span></div></div>' +
+      '<div class="empty">Points are applied automatically at checkout once you reach the minimum (coming to checkout screen in a future update).</div>';
+  });
+}
+
+function createSettlementsAndLoyalty(orderId){
+  docGet('orders', orderId, function(o){
+    if (!o || o.settlementCreated) return;
+    var commissionPct = state.settings.commissionPct;
+    var grossFood = o.subtotal;
+    var commission = Math.round(grossFood*commissionPct/100);
+    var restNet = grossFood - commission;
+    var riderEarning = o.deliveryFee;
+    var platformEarning = commission + (o.platformFee||0);
+
+    docAdd('settlements', {
+      type:'restaurant', restaurantId:o.restaurantId, orderId:orderId,
+      grossAmount:grossFood, commission:commission, netAmount:restNet,
+      status:'PENDING', createdAt:nowTS()
+    });
+    if (o.riderId){
+      docAdd('settlements', {
+        type:'rider', riderId:o.riderId, orderId:orderId,
+        amount:riderEarning, status:'PENDING', createdAt:nowTS()
+      });
+    }
+    docSet('orders', orderId, {
+      settlementCreated:true, restaurantNet:restNet, platformEarning:platformEarning
+    });
+
+    // loyalty points — only after real delivery
+    var pts = state.settings.pointsPerOrder;
+    docGet('loyaltyAccounts', o.customerId, function(acc){
+      var newPts = (acc?acc.points:0) + pts;
+      docSet('loyaltyAccounts', o.customerId, {userId:o.customerId, points:newPts});
+      docAdd('loyaltyTransactions', {userId:o.customerId, orderId:orderId, points:pts, type:'EARN', createdAt:nowTS()});
+      notifyUser(o.customerId, 'You earned '+pts+' points! Order delivered.');
+    });
+  });
+}
+
+/* =========================================================================
+   PROFILE / AUTH SCREENS
+   ========================================================================= */
+function renderProfile(){
+  if (!state.user){ go({name:'auth'}); return; }
+  var p = state.profile || {};
+  $app.innerHTML =
+    '<div class="section-title">Profile</div>' +
+    '<div class="card"><div class="rowline"><span>Email</span><span>'+escapeHtml(p.email||state.user.email)+'</span></div>' +
+    '<div class="rowline"><span>Role</span><span>'+escapeHtml(state.role)+'</span></div>' +
+    (p.status? '<div class="rowline"><span>Approval status</span><span class="tag '+(p.status==='PENDING'?'pending':'paid')+'">'+p.status+'</span></div>':'') +
+    '</div>' +
+    '<div class="field"><label>Full name</label><input id="pfName" value="'+escapeHtml(p.name||'')+'"></div>' +
+    '<div class="field"><label>Phone</label><input id="pfPhone" value="'+escapeHtml(p.phone||'')+'"></div>' +
+    '<div class="field"><label>Saved delivery address</label><textarea id="pfAddress">'+escapeHtml(p.address||'')+'</textarea></div>' +
+    '<div style="padding:0 14px"><button class="btn block" id="saveProfileBtn">Save Profile</button>' +
+    '<button class="btn block" style="background:transparent;color:var(--danger);border:1px solid var(--danger);margin-top:10px" id="logoutBtn">Log Out</button></div>';
+
+  document.getElementById('saveProfileBtn').addEventListener('click', function(){
+    var name=document.getElementById('pfName').value.trim();
+    var phone=document.getElementById('pfPhone').value.trim();
+    var address=document.getElementById('pfAddress').value.trim();
+    docSet('users', state.user.uid, {name:name, phone:phone, address:address}, function(ok){
+      if (ok){ state.profile = Object.assign(state.profile||{}, {name:name,phone:phone,address:address}); toast('Profile saved'); }
+    });
+  });
+  document.getElementById('logoutBtn').addEventListener('click', function(){ auth.signOut(); go({name:'home'}); });
+}
+
+function renderAuth(){
+  var mode = state.authMode || 'login';
+  var role = state.authRole || 'customer';
+  var html = '<div id="authScreens">' +
+    '<div class="section-title" style="text-align:center;font-size:20px">Welcome to OCROWN</div>' +
+    '<div class="tabs" style="justify-content:center"><button data-m="login" class="'+(mode==='login'?'active':'')+'">Login</button>' +
+    '<button data-m="register" class="'+(mode==='register'?'active':'')+'">Register</button>' +
+    '<button data-m="guest" class="">Continue as Guest</button></div>';
+
+  if (mode==='register'){
+    html += '<div class="roleSwitch">' +
+      ['customer','restaurant','rider'].map(function(r){
+        return '<button data-r="'+r+'" class="'+(role===r?'active':'')+'">'+r.charAt(0).toUpperCase()+r.slice(1)+'</button>';
+      }).join('') + '</div>';
+  }
+
+  html += '<div class="field"><label>Email</label><input id="authEmail" type="email"></div>' +
+    '<div class="field"><label>Password</label><input id="authPass" type="password"></div>';
+
+  if (mode==='register'){
+    if (role==='customer'){
+      html += '<div class="field"><label>Full name</label><input id="regName"></div>' +
+              '<div class="field"><label>Phone</label><input id="regPhone"></div>';
+    } else if (role==='restaurant'){
+      html += '<div class="field"><label>Restaurant / business name</label><input id="regBiz"></div>' +
+              '<div class="field"><label>Phone</label><input id="regPhone"></div>' +
+              '<p class="empty">Your restaurant will be reviewed by an admin before it can receive orders.</p>';
+    } else if (role==='rider'){
+      html += '<div class="field"><label>Full name</label><input id="regName"></div>' +
+              '<div class="field"><label>Phone</label><input id="regPhone"></div>' +
+              '<div class="field"><label>Vehicle (e.g. motorbike, bicycle)</label><input id="regVehicle"></div>' +
+              '<div class="field"><label>ID information (e.g. NIN / drivers license no.)</label><input id="regId"></div>' +
+              '<p class="empty">Your rider account needs admin approval before you can accept deliveries.</p>';
+    }
+  }
+  html += '<div style="padding:0 14px"><button class="btn block" id="authSubmitBtn">'+(mode==='login'?'Log In':'Create Account')+'</button></div>';
+  html += '</div>';
+  $app.innerHTML = html;
+
+  $app.querySelectorAll('[data-m]').forEach(function(b){
+    b.addEventListener('click', function(){
+      var m=b.getAttribute('data-m');
+      if (m==='guest'){ go({name:'home'}); return; }
+      state.authMode=m; renderAuth();
+    });
+  });
+  $app.querySelectorAll('[data-r]').forEach(function(b){
+    b.addEventListener('click', function(){ state.authRole=b.getAttribute('data-r'); renderAuth(); });
+  });
+
+  document.getElementById('authSubmitBtn').addEventListener('click', function(){
+    var email=document.getElementById('authEmail').value.trim();
+    var pass=document.getElementById('authPass').value;
+    if (!email||!pass){ toast('Enter email and password'); return; }
+    if (mode==='login'){
+      loginAccount(email,pass,function(ok){ if(ok) go({name:'home'}); });
+    } else {
+      var extra={};
+      if (role==='customer'){
+        extra.name=val('regName'); extra.phone=val('regPhone');
+      } else if (role==='restaurant'){
+        extra.businessName=val('regBiz'); extra.phone=val('regPhone');
+      } else if (role==='rider'){
+        extra.name=val('regName'); extra.phone=val('regPhone'); extra.vehicle=val('regVehicle'); extra.idInfo=val('regId');
+      }
+      registerAccount(role, email, pass, extra, function(ok){
+        if (ok){ toast('Account created!'); go({name:'home'}); }
+      });
+    }
+  });
+  function val(id){ var e=document.getElementById(id); return e? e.value.trim():''; }
+}
+
+/* =========================================================================
+   RESTAURANT DASHBOARD
+   ========================================================================= */
+var restTab = 'orders';
+function renderRestDashboard(){
+  if (!state.user || state.role!=='restaurant'){ go({name:'home'}); return; }
+  docGet('restaurants', state.user.uid, function(r){
+    if (!r){ $app.innerHTML='<div class="empty">Restaurant profile not found</div>'; return; }
+    var tabs=['orders','menu','branches','earnings','profile'];
+    var html = '<div class="section-title">'+escapeHtml(r.name)+' <span class="tag '+(r.status==='APPROVED'?'paid':'pending')+'">'+r.status+'</span></div>' +
+      '<div class="tabs" id="restTabs">'+tabs.map(function(t){return '<button data-t="'+t+'" class="'+(restTab===t?'active':'')+'">'+t.charAt(0).toUpperCase()+t.slice(1)+'</button>';}).join('')+'</div>' +
+      '<div id="restTabBody"></div>';
+    $app.innerHTML = html;
+    $app.querySelectorAll('#restTabs button').forEach(function(b){
+      b.addEventListener('click', function(){ restTab=b.getAttribute('data-t'); renderRestDashboard(); });
+    });
+    var body = document.getElementById('restTabBody');
+    if (r.status!=='APPROVED'){
+      body.innerHTML = '<div class="empty">Your restaurant is pending admin approval. You can still set up your menu and branches, but you will not receive orders until approved.</div>';
+    }
+    if (restTab==='orders') renderRestOrders(r, body);
+    if (restTab==='menu') renderRestMenu(r, body);
+    if (restTab==='branches') renderRestBranches(r, body);
+    if (restTab==='earnings') renderRestEarnings(r, body);
+    if (restTab==='profile') renderRestProfile(r, body);
+  });
+}
+
+function renderRestOrders(r, body){
+  var holder=document.createElement('div');
+  holder.innerHTML='<div class="empty">Loading orders...</div>';
+  body.appendChild(holder);
+  colGet('orders', [['restaurantId','==',r.id]], function(list){
+    list = sortByCreated(list.filter(function(o){return o.status!=='PENDING_PAYMENT';}));
+    if (list.length===0){ holder.innerHTML='<div class="empty">No orders yet</div>'; return; }
+    holder.innerHTML='';
+    list.forEach(function(o){
+      var row=document.createElement('div'); row.className='listrow';
+      var actions='';
+      if (o.status==='PAYMENT_CONFIRMED') actions='<button class="btn small" data-a="accept">Accept Order</button><button class="btn small danger" data-a="reject">Reject</button>';
+      if (o.status==='RESTAURANT_ACCEPTED') actions='<button class="btn small" data-a="preparing">Start Preparing</button>';
+      if (o.status==='PREPARING') actions='<button class="btn small" data-a="ready">Mark Ready for Pickup</button>';
+      row.innerHTML = '<div class="top"><strong>#'+o.id.slice(-6).toUpperCase()+'</strong><span class="tag">'+o.status.replace(/_/g,' ')+'</span></div>' +
+        '<div class="sub">'+o.items.map(function(i){return i.name+' x'+i.qty;}).join(', ')+' · '+fmtNaira(o.total)+'</div>' +
+        '<div class="actions">'+actions+'</div>';
+      row.querySelectorAll('[data-a]').forEach(function(b){
+        b.addEventListener('click', function(){
+          var a=b.getAttribute('data-a');
+          if (a==='accept') advanceOrderStatus(o.id,'RESTAURANT_ACCEPTED');
+          if (a==='reject') advanceOrderStatus(o.id,'CANCELLED',{paymentStatus:o.paymentStatus});
+          if (a==='preparing') advanceOrderStatus(o.id,'PREPARING');
+          if (a==='ready'){ advanceOrderStatus(o.id,'READY_FOR_PICKUP'); notifyAdmin('Order #'+o.id.slice(-6).toUpperCase()+' ready — needs rider'); }
+          setTimeout(renderRestDashboard, 400);
+        });
+      });
+      holder.appendChild(row);
+    });
+  });
+}
+
+function renderRestMenu(r, body){
+  var wrap=document.createElement('div');
+  wrap.innerHTML = '<div style="padding:0 14px 10px"><button class="btn block" id="addFoodBtn">+ Add Food Item</button></div><div id="foodListAdmin"></div>';
+  body.appendChild(wrap);
+  document.getElementById('addFoodBtn').addEventListener('click', function(){ openFoodForm(r); });
+  colGet('foods', [['restaurantId','==',r.id]], function(list){
+    var holder=document.getElementById('foodListAdmin');
+    if (list.length===0){ holder.innerHTML='<div class="empty">No food items yet</div>'; return; }
+    holder.innerHTML='';
+    list.forEach(function(f){
+      var row=document.createElement('div'); row.className='listrow';
+      row.innerHTML='<div class="top"><strong>'+escapeHtml(f.name)+'</strong><span class="tag '+(f.available?'paid':'rejected')+'">'+(f.available?'Available':'Out of stock')+'</span></div>'+
+        '<div class="sub">'+escapeHtml(f.category||'')+' · '+fmtNaira(f.price)+'</div>'+
+        '<div class="actions"><button class="btn small outline" data-a="toggle">Toggle Stock</button><button class="btn small" data-a="edit">Edit</button></div>';
+      row.querySelector('[data-a="toggle"]').addEventListener('click', function(){
+        docSet('foods', f.id, {available: !f.available}, function(){ renderRestDashboard(); });
+      });
+      row.querySelector('[data-a="edit"]').addEventListener('click', function(){ openFoodForm(r, f); });
+      holder.appendChild(row);
+    });
+  });
+}
+
+function openFoodForm(r, existing){
+  var f = existing || {name:'',description:'',price:'',category:'',imageUrl:'',available:true};
+  var html = '<h3>'+(existing?'Edit':'Add')+' Food Item</h3>' +
+    '<div class="field"><label>Name</label><input id="fName" value="'+escapeHtml(f.name)+'"></div>' +
+    '<div class="field"><label>Description</label><textarea id="fDesc">'+escapeHtml(f.description)+'</textarea></div>' +
+    '<div class="field"><label>Price (₦)</label><input id="fPrice" type="number" value="'+f.price+'"></div>' +
+    '<div class="field"><label>Category</label><input id="fCat" value="'+escapeHtml(f.category)+'" list="catlist"><datalist id="catlist">'+FOOD_CATEGORIES.map(function(c){return '<option value="'+c+'">';}).join('')+'</datalist></div>' +
+    '<div class="field"><label>Photo</label><input type="file" id="fImg" accept="image/*">'+(f.imageUrl?'<img class="imgpreview" src="'+f.imageUrl+'">':'')+'</div>' +
+    '<div style="padding:0 14px"><button class="btn block" id="saveFoodBtn">Save Item</button></div>';
+  openModal(html);
+  document.getElementById('saveFoodBtn').addEventListener('click', function(){
+    var data = {
+      restaurantId:r.id, name:val('fName'), description:val('fDesc'),
+      price:Number(val('fPrice')||0), category:val('fCat')||'Other',
+      available: f.available!==false, createdAt: existing? f.createdAt : nowTS()
+    };
+    function save(imgUrl){
+      if (imgUrl) data.imageUrl = imgUrl;
+      var id = existing? existing.id : uid();
+      docSet('foods', id, data, function(ok){
+        if (ok){ closeModal(); toast('Saved'); renderRestDashboard(); }
+      });
+    }
+    var fileInput=document.getElementById('fImg');
+    if (fileInput.files[0]) uploadImage('foods/'+r.id, fileInput.files[0], save);
+    else save(null);
+  });
+  function val(id){ return document.getElementById(id).value.trim(); }
+}
+
+function renderRestBranches(r, body){
+  var wrap=document.createElement('div');
+  wrap.innerHTML = '<div style="padding:0 14px 10px"><button class="btn block" id="addBranchBtn">+ Add Branch</button></div><div id="branchListAdmin"></div>';
+  body.appendChild(wrap);
+  document.getElementById('addBranchBtn').addEventListener('click', function(){ openBranchForm(r); });
+  colGet('branches', [['restaurantId','==',r.id]], function(list){
+    var holder=document.getElementById('branchListAdmin');
+    if (list.length===0){ holder.innerHTML='<div class="empty">No branches yet</div>'; return; }
+    holder.innerHTML='';
+    list.forEach(function(b){
+      var row=document.createElement('div'); row.className='listrow';
+      row.innerHTML='<div class="top"><strong>'+escapeHtml(b.name)+'</strong></div><div class="sub">'+escapeHtml(b.address||'')+'</div>';
+      holder.appendChild(row);
+    });
+  });
+}
+function openBranchForm(r){
+  var html='<h3>Add Branch</h3>' +
+    '<div class="field"><label>Branch name</label><input id="bName"></div>' +
+    '<div class="field"><label>Address</label><textarea id="bAddress"></textarea></div>' +
+    '<div style="padding:0 14px"><button class="btn block" id="saveBranchBtn">Save Branch</button></div>';
+  openModal(html);
+  document.getElementById('saveBranchBtn').addEventListener('click', function(){
+    docAdd('branches', {restaurantId:r.id, name:document.getElementById('bName').value.trim(),
+      address:document.getElementById('bAddress').value.trim(), createdAt:nowTS()}, function(id){
+      if (id){ closeModal(); renderRestDashboard(); }
+    });
+  });
+}
+
+function renderRestEarnings(r, body){
+  var holder=document.createElement('div'); holder.innerHTML='<div class="empty">Loading...</div>';
+  body.appendChild(holder);
+  colGet('settlements', [['restaurantId','==',r.id]], function(list){
+    list = sortByCreated(list);
+    var totalPaid = list.filter(function(s){return s.status==='PAID';}).reduce(function(s,i){return s+i.netAmount;},0);
+    var totalPending = list.filter(function(s){return s.status!=='PAID';}).reduce(function(s,i){return s+i.netAmount;},0);
+    var html = '<div class="statgrid"><div class="stat"><div class="num">'+fmtNaira(totalPaid)+'</div><div class="lbl">Paid Out</div></div>'+
+      '<div class="stat"><div class="num">'+fmtNaira(totalPending)+'</div><div class="lbl">Pending Settlement</div></div></div>';
+    if (list.length===0) html += '<div class="empty">No settlements yet</div>';
+    holder.innerHTML = html;
+    list.forEach(function(s){
+      var row=document.createElement('div'); row.className='listrow';
+      row.innerHTML='<div class="top"><strong>'+fmtNaira(s.netAmount)+'</strong><span class="tag '+(s.status==='PAID'?'paid':'pending')+'">'+s.status+'</span></div>'+
+        '<div class="sub">Gross '+fmtNaira(s.grossAmount)+' · Commission '+fmtNaira(s.commission)+'</div>';
+      holder.appendChild(row);
+    });
+  });
+}
+
+function renderRestProfile(r, body){
+  var wrap=document.createElement('div');
+  wrap.innerHTML =
+    '<div class="field"><label>Description</label><textarea id="rDesc">'+escapeHtml(r.description||'')+'</textarea></div>' +
+    '<div class="field"><label>Operating hours</label><input id="rHours" value="'+escapeHtml(r.hours||'')+'"></div>' +
+    '<div class="field"><label>Delivery areas</label><input id="rAreas" value="'+escapeHtml(r.deliveryAreas||'')+'"></div>' +
+    '<div class="field"><label>Categories (comma separated)</label><input id="rCats" value="'+escapeHtml((r.categories||[]).join(', '))+'"></div>' +
+    '<div class="field"><label>Logo</label><input type="file" id="rLogo" accept="image/*">'+(r.logoUrl?'<img class="imgpreview" src="'+r.logoUrl+'">':'')+'</div>' +
+    '<div class="field"><label>Cover image</label><input type="file" id="rCover" accept="image/*">'+(r.coverUrl?'<img class="imgpreview" src="'+r.coverUrl+'">':'')+'</div>' +
+    '<div style="padding:0 14px"><button class="btn block" id="saveRestBtn">Save</button></div>';
+  body.appendChild(wrap);
+  document.getElementById('saveRestBtn').addEventListener('click', function(){
+    var data={ description:val('rDesc'), hours:val('rHours'), deliveryAreas:val('rAreas'),
+      categories: val('rCats').split(',').map(function(s){return s.trim();}).filter(Boolean) };
+    function afterImgs(){
+      docSet('restaurants', r.id, data, function(ok){ if (ok){ toast('Saved'); renderRestDashboard(); } });
+    }
+    var logoF=document.getElementById('rLogo').files[0], coverF=document.getElementById('rCover').files[0];
+    var pending=0;
+    if (logoF){ pending++; uploadImage('logos/'+r.id, logoF, function(u){ if(u) data.logoUrl=u; if(--pending===0) afterImgs(); }); }
+    if (coverF){ pending++; uploadImage('covers/'+r.id, coverF, function(u){ if(u) data.coverUrl=u; if(--pending===0) afterImgs(); }); }
+    if (pending===0) afterImgs();
+  });
+  function val(id){ return document.getElementById(id).value.trim(); }
+}
+
+/* =========================================================================
+   RIDER DASHBOARD
+   ========================================================================= */
+function renderRiderDashboard(){
+  if (!state.user || state.role!=='rider'){ go({name:'home'}); return; }
+  docGet('riders', state.user.uid, function(rd){
+    if (!rd){ $app.innerHTML='<div class="empty">Rider profile not found</div>'; return; }
+    var html = '<div class="section-title">Rider Dashboard <span class="tag '+(rd.status==='APPROVED'?'paid':'pending')+'">'+rd.status+'</span></div>';
+    if (rd.status!=='APPROVED'){
+      html += '<div class="empty">Your account is pending admin approval.</div>';
+      $app.innerHTML = html; return;
+    }
+    html += '<div class="card"><div class="rowline"><span>Availability</span>' +
+      '<select id="availSel">'+['Offline','Available'].map(function(s){return '<option '+(rd.availability===s?'selected':'')+'>'+s+'</option>';}).join('')+'</select></div></div>';
+    html += '<div class="section-title">Assigned Deliveries</div><div id="riderOrders"></div>';
+    html += '<div class="section-title">Earnings</div><div id="riderEarnings"></div>';
+    $app.innerHTML = html;
+    document.getElementById('availSel').addEventListener('change', function(e){
+      docSet('riders', rd.id, {availability:e.target.value});
+    });
+    colGet('orders', [['riderId','==',rd.id]], function(list){
+      list = sortByCreated(list);
+      var active = list.filter(function(o){return ['RIDER_ASSIGNED','PICKED_UP','ON_THE_WAY'].indexOf(o.status)>-1;});
+      var holder = document.getElementById('riderOrders');
+      if (active.length===0){ holder.innerHTML='<div class="empty">No active deliveries</div>'; }
+      else {
+        holder.innerHTML='';
+        active.forEach(function(o){
+          var row=document.createElement('div'); row.className='listrow';
+          var nextAction = o.status==='RIDER_ASSIGNED'? {s:'PICKED_UP',l:'Mark Picked Up'} :
+                            o.status==='PICKED_UP'? {s:'ON_THE_WAY',l:'Mark On The Way'} :
+                            {s:'DELIVERED',l:'Mark Delivered'};
+          row.innerHTML = '<div class="top"><strong>#'+o.id.slice(-6).toUpperCase()+'</strong><span class="tag">'+o.status.replace(/_/g,' ')+'</span></div>' +
+            '<div class="sub">Pickup: '+escapeHtml(o.restaurantName)+'</div>' +
+            '<div class="sub">Deliver to: '+escapeHtml(o.deliveryAddress)+' · '+escapeHtml(o.customerPhone)+'</div>' +
+            '<div class="actions"><button class="btn small" data-s="'+nextAction.s+'">'+nextAction.l+'</button></div>';
+          row.querySelector('[data-s]').addEventListener('click', function(){
+            var ns=this.getAttribute('data-s');
+            advanceOrderStatus(o.id, ns);
+            if (ns==='DELIVERED') docSet('riders', rd.id, {availability:'Available'});
+            setTimeout(renderRiderDashboard, 400);
+          });
+          holder.appendChild(row);
+        });
+      }
+    });
+    colGet('settlements', [['riderId','==',rd.id]], function(list){
+      var holder=document.getElementById('riderEarnings');
+      var paid = list.filter(function(s){return s.status==='PAID';}).reduce(function(s,i){return s+i.amount;},0);
+      var pending = list.filter(function(s){return s.status!=='PAID';}).reduce(function(s,i){return s+i.amount;},0);
+      holder.innerHTML = '<div class="statgrid"><div class="stat"><div class="num">'+fmtNaira(paid)+'</div><div class="lbl">Paid</div></div>'+
+        '<div class="stat"><div class="num">'+fmtNaira(pending)+'</div><div class="lbl">Pending</div></div></div>';
+    });
+  });
+}
+
+/* =========================================================================
+   ADMIN DASHBOARD
+   ========================================================================= */
+var adminTab='overview';
+function renderAdminDashboard(){
+  if (!state.user || state.role!=='admin'){ go({name:'home'}); return; }
+  var tabs=['overview','restaurants','riders','payments','orders','settlements','settings'];
+  $app.innerHTML = '<div class="section-title">Admin Dashboard</div>' +
+    '<div class="tabs" id="adminTabs">'+tabs.map(function(t){return '<button data-t="'+t+'" class="'+(adminTab===t?'active':'')+'">'+t.charAt(0).toUpperCase()+t.slice(1)+'</button>';}).join('')+'</div>'+
+    '<div id="adminBody"></div>';
+  $app.querySelectorAll('#adminTabs button').forEach(function(b){
+    b.addEventListener('click', function(){ adminTab=b.getAttribute('data-t'); renderAdminDashboard(); });
+  });
+  var body=document.getElementById('adminBody');
+  if (adminTab==='overview') renderAdminOverview(body);
+  if (adminTab==='restaurants') renderAdminRestaurants(body);
+  if (adminTab==='riders') renderAdminRiders(body);
+  if (adminTab==='payments') renderAdminPayments(body);
+  if (adminTab==='orders') renderAdminOrders(body);
+  if (adminTab==='settlements') renderAdminSettlements(body);
+  if (adminTab==='settings') renderAdminSettings(body);
+}
+
+function renderAdminOverview(body){
+  body.innerHTML = '<div class="empty">Loading stats...</div>';
+  Promise.all([
+    new Promise(function(res){colGet('users',[],res);}),
+    new Promise(function(res){colGet('restaurants',[],res);}),
+    new Promise(function(res){colGet('riders',[],res);}),
+    new Promise(function(res){colGet('orders',[],res);}),
+    new Promise(function(res){colGet('payments',[],res);})
+  ]).then(function(r){
+    var users=r[0], restaurants=r[1], riders=r[2], orders=r[3], payments=r[4];
+    var customers = users.filter(function(u){return u.role==='customer';}).length;
+    var totalSales = orders.filter(function(o){return o.status==='DELIVERED';}).reduce(function(s,o){return s+o.total;},0);
+    var pendingPay = payments.filter(function(p){return p.status==='SUBMITTED';}).length;
+    body.innerHTML = '<div class="statgrid">'+
+      stat(customers,'Customers')+stat(restaurants.length,'Restaurants')+
+      stat(riders.length,'Riders')+stat(orders.length,'Total Orders')+
+      stat(fmtNaira(totalSales),'Total Sales')+stat(pendingPay,'Pending Payments')+
+      '</div>';
+  });
+  function stat(n,l){ return '<div class="stat"><div class="num">'+n+'</div><div class="lbl">'+l+'</div></div>'; }
+}
+
+function renderAdminRestaurants(body){
+  body.innerHTML='<div class="empty">Loading...</div>';
+  colGet('restaurants',[],function(list){
+    list = sortByCreated(list);
+    if (list.length===0){ body.innerHTML='<div class="empty">No restaurants yet</div>'; return; }
+    body.innerHTML='';
+    list.forEach(function(r){
+      var row=document.createElement('div'); row.className='listrow';
+      var actions='';
+      if (r.status==='PENDING') actions='<button class="btn small" data-a="approve">Approve</button><button class="btn small danger" data-a="reject">Reject</button>';
+      else if (r.status==='APPROVED') actions='<button class="btn small danger" data-a="suspend">Suspend</button>';
+      else actions='<button class="btn small" data-a="approve">Reactivate</button>';
+      row.innerHTML='<div class="top"><strong>'+escapeHtml(r.name)+'</strong><span class="tag '+(r.status==='APPROVED'?'paid':r.status==='PENDING'?'pending':'rejected')+'">'+r.status+'</span></div>'+
+        '<div class="sub">'+escapeHtml(r.phone||'')+'</div><div class="actions">'+actions+'</div>';
+      row.querySelectorAll('[data-a]').forEach(function(b){
+        b.addEventListener('click', function(){
+          var a=b.getAttribute('data-a');
+          var st = a==='approve'?'APPROVED':a==='reject'?'REJECTED':'SUSPENDED';
+          docSet('restaurants', r.id, {status:st}, function(){
+            notifyUser(r.ownerId, 'Your restaurant is now '+st);
+            renderAdminDashboard();
+          });
+        });
+      });
+      body.appendChild(row);
+    });
+  });
+}
+
+function renderAdminRiders(body){
+  body.innerHTML='<div class="empty">Loading...</div>';
+  colGet('riders',[],function(list){
+    list = sortByCreated(list);
+    if (list.length===0){ body.innerHTML='<div class="empty">No riders yet</div>'; return; }
+    body.innerHTML='';
+    list.forEach(function(r){
+      var row=document.createElement('div'); row.className='listrow';
+      var actions='';
+      if (r.status==='PENDING') actions='<button class="btn small" data-a="approve">Approve</button><button class="btn small danger" data-a="reject">Reject</button>';
+      else if (r.status==='APPROVED') actions='<button class="btn small danger" data-a="suspend">Suspend</button>';
+      else actions='<button class="btn small" data-a="approve">Reactivate</button>';
+      row.innerHTML='<div class="top"><strong>'+escapeHtml(r.name)+'</strong><span class="tag '+(r.status==='APPROVED'?'paid':r.status==='PENDING'?'pending':'rejected')+'">'+r.status+'</span></div>'+
+        '<div class="sub">'+escapeHtml(r.phone||'')+' · '+escapeHtml(r.vehicle||'')+'</div><div class="actions">'+actions+'</div>';
+      row.querySelectorAll('[data-a]').forEach(function(b){
+        b.addEventListener('click', function(){
+          var a=b.getAttribute('data-a');
+          var st = a==='approve'?'APPROVED':a==='reject'?'REJECTED':'SUSPENDED';
+          docSet('riders', r.id, {status:st}, function(){
+            notifyUser(r.userId, 'Your rider account is now '+st);
+            renderAdminDashboard();
+          });
+        });
+      });
+      body.appendChild(row);
+    });
+  });
+}
+
+function renderAdminPayments(body){
+  body.innerHTML='<div class="empty">Loading...</div>';
+  colGet('payments', [['status','==','SUBMITTED']], function(list){
+    list = sortByCreated(list);
+    if (list.length===0){ body.innerHTML='<div class="empty">No pending payments</div>'; return; }
+    body.innerHTML='';
+    list.forEach(function(p){
+      var row=document.createElement('div'); row.className='listrow';
+      row.innerHTML='<div class="top"><strong>'+fmtNaira(p.amount)+'</strong><span class="tag pending">SUBMITTED</span></div>'+
+        '<div class="sub">Ref: '+escapeHtml(p.reference)+' · Order #'+p.orderId.slice(-6).toUpperCase()+'</div>'+
+        (p.receiptUrl? '<img class="imgpreview" style="height:100px" src="'+p.receiptUrl+'">':'')+
+        '<div class="actions"><button class="btn small" data-a="confirm">Confirm Payment</button><button class="btn small danger" data-a="reject">Reject</button></div>';
+      row.querySelectorAll('[data-a]').forEach(function(b){
+        b.addEventListener('click', function(){
+          var a=b.getAttribute('data-a');
+          if (a==='confirm'){
+            docSet('payments', p.id, {status:'CONFIRMED'}, function(){
+              advanceOrderStatus(p.orderId, 'PAYMENT_CONFIRMED', {paymentStatus:'PAID'});
+              docGet('orders', p.orderId, function(o){ if(o) notifyUser(o.customerId,'Your payment was confirmed!'); });
+              renderAdminDashboard();
+            });
+          } else {
+            docSet('payments', p.id, {status:'REJECTED'}, function(){ renderAdminDashboard(); });
+          }
+        });
+      });
+      body.appendChild(row);
+    });
+  });
+}
+
+function renderAdminOrders(body){
+  body.innerHTML='<div class="empty">Loading...</div>';
+  colGet('orders',[],function(list){
+    list = sortByCreated(list);
+    var readyList = list.filter(function(o){return o.status==='READY_FOR_PICKUP';});
+    var html = '';
+    if (readyList.length>0){
+      html += '<div class="section-title">Awaiting Rider Assignment</div>';
+    }
+    body.innerHTML = html;
+    readyList.forEach(function(o){
+      var row=document.createElement('div'); row.className='listrow';
+      row.innerHTML='<div class="top"><strong>#'+o.id.slice(-6).toUpperCase()+'</strong><span class="tag pending">READY</span></div>'+
+        '<div class="sub">'+escapeHtml(o.restaurantName)+' → '+escapeHtml(o.deliveryAddress)+'</div>'+
+        '<div class="field" style="margin:8px 0"><select data-order="'+o.id+'" class="riderSel"><option value="">Assign rider...</option></select></div>';
+      body.appendChild(row);
+    });
+    colGet('riders', [['status','==','APPROVED']], function(riders){
+      var avail = riders.filter(function(r){return r.availability==='Available';});
+      document.querySelectorAll('.riderSel').forEach(function(sel){
+        avail.forEach(function(r){
+          var opt=document.createElement('option'); opt.value=r.id; opt.textContent=r.name+' ('+r.phone+')';
+          sel.appendChild(opt);
+        });
+        sel.addEventListener('change', function(){
+          if (!this.value) return;
+          var rider = avail.find(function(r){return r.id===this.value;}.bind(this));
+          var orderId=this.getAttribute('data-order');
+          docSet('orders', orderId, {riderId:rider.id, riderName:rider.name, riderPhone:rider.phone});
+          advanceOrderStatus(orderId,'RIDER_ASSIGNED');
+          docSet('riders', rider.id, {availability:'Assigned'});
+          notifyUser(rider.userId, 'New delivery assigned to you');
+          toast('Rider assigned');
+          setTimeout(renderAdminDashboard, 500);
+        });
+      });
+    });
+    var allHtml = document.createElement('div');
+    allHtml.innerHTML = '<div class="section-title">All Orders</div>';
+    body.appendChild(allHtml);
+    list.forEach(function(o){
+      var row=document.createElement('div'); row.className='listrow';
+      row.innerHTML='<div class="top"><strong>#'+o.id.slice(-6).toUpperCase()+'</strong><span class="tag">'+o.status.replace(/_/g,' ')+'</span></div>'+
+        '<div class="sub">'+escapeHtml(o.restaurantName)+' · '+fmtNaira(o.total)+' · '+escapeHtml(o.customerName||'')+'</div>';
+      body.appendChild(row);
+    });
+  });
+}
+
+function renderAdminSettlements(body){
+  body.innerHTML='<div class="empty">Loading...</div>';
+  colGet('settlements',[],function(list){
+    list = sortByCreated(list);
+    if (list.length===0){ body.innerHTML='<div class="empty">No settlements yet</div>'; return; }
+    body.innerHTML='';
+    list.forEach(function(s){
+      var row=document.createElement('div'); row.className='listrow';
+      var amt = s.type==='restaurant'? s.netAmount : s.amount;
+      row.innerHTML='<div class="top"><strong>'+fmtNaira(amt)+' — '+s.type+'</strong><span class="tag '+(s.status==='PAID'?'paid':'pending')+'">'+s.status+'</span></div>'+
+        '<div class="sub">Order #'+s.orderId.slice(-6).toUpperCase()+'</div>'+
+        (s.status!=='PAID'? '<div class="actions"><button class="btn small" data-a="approve">'+(s.status==='PENDING'?'Approve':'Mark Paid')+'</button></div>':'');
+      var btn=row.querySelector('[data-a]');
+      if (btn) btn.addEventListener('click', function(){
+        var next = s.status==='PENDING'?'APPROVED':'PAID';
+        docSet('settlements', s.id, {status:next}, function(){ renderAdminDashboard(); });
+      });
+      body.appendChild(row);
+    });
+  });
+}
+
+function renderAdminSettings(body){
+  var s = state.settings;
+  body.innerHTML =
+    '<div class="field"><label>Bank Name</label><input id="sBank" value="'+escapeHtml(s.bankName)+'"></div>' +
+    '<div class="field"><label>Account Name</label><input id="sAccName" value="'+escapeHtml(s.accountName)+'"></div>' +
+    '<div class="field"><label>Account Number</label><input id="sAccNo" value="'+escapeHtml(s.accountNumber)+'"></div>' +
+    '<div class="field"><label>Restaurant Commission (%)</label><input id="sComm" type="number" value="'+s.commissionPct+'"></div>' +
+    '<div class="field"><label>Default Delivery Fee (₦)</label><input id="sDelivery" type="number" value="'+s.deliveryFee+'"></div>' +
+    '<div class="field"><label>Platform Service Fee (₦)</label><input id="sPlatform" type="number" value="'+s.platformFee+'"></div>' +
+    '<div class="field"><label>Loyalty points per order</label><input id="sPts" type="number" value="'+s.pointsPerOrder+'"></div>' +
+    '<div class="field"><label>Minimum points to redeem</label><input id="sMinPts" type="number" value="'+s.minPointsRedeem+'"></div>' +
+    '<div class="field"><label>Value per point (₦)</label><input id="sPtVal" type="number" value="'+s.pointValue+'"></div>' +
+    '<div style="padding:0 14px"><button class="btn block" id="saveSettingsBtn">Save Settings</button></div>';
+  document.getElementById('saveSettingsBtn').addEventListener('click', function(){
+    var data = {
+      bankName:val('sBank'), accountName:val('sAccName'), accountNumber:val('sAccNo'),
+      commissionPct:Number(val('sComm')), deliveryFee:Number(val('sDelivery')),
+      platformFee:Number(val('sPlatform')), pointsPerOrder:Number(val('sPts')),
+      minPointsRedeem:Number(val('sMinPts')), pointValue:Number(val('sPtVal'))
+    };
+    docSet('settings','platform', data, function(ok){
+      if (ok){ state.settings=Object.assign(state.settings,data); toast('Settings saved'); }
+    });
+  });
+  function val(id){ return document.getElementById(id).value.trim(); }
+}
+
+/* =========================================================================
+   INITIAL BOOT
+   ========================================================================= */
+loadSettings(function(){ render(); });
+</script>
+</body>
+</html>

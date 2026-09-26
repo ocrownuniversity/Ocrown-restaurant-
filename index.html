@@ -564,44 +564,84 @@ function escapeHtml(s){
    ========================================================================= */
 var FOOD_CATEGORIES = ["All","Rice","Swallow","Grills","Pastries","Drinks","Soups","Snacks","Continental"];
 var activeCategory = "All";
+var searchQuery = "";
+
+function ensureFoodsCache(cb){
+  if (state.cache.allFoods){ cb(state.cache.allFoods); return; }
+  colGet('foods', [['available','==',true]], function(list){
+    state.cache.allFoods = list;
+    cb(list);
+  });
+}
 
 function renderHome(){
   $app.innerHTML = ''
    + '<div class="hero"><h1>Good food, delivered.</h1><p>Order from restaurants near you across Nigeria.</p></div>'
+   + '<div class="field" style="margin:12px 14px 4px"><input id="homeSearch" placeholder="Search restaurants or food..." value="'+escapeHtml(searchQuery)+'"></div>'
    + '<div class="section-title">Categories</div>'
    + '<div class="hscroll" id="catRow"></div>'
    + '<div class="section-title">Restaurants</div>'
-   + '<div id="restList"></div>';
+   + '<div id="restList"><div class="empty">Loading...</div></div>';
 
   var catRow = document.getElementById('catRow');
   FOOD_CATEGORIES.forEach(function(c){
     var chip=document.createElement('button');
     chip.className='catchip'+(c===activeCategory?' active':'');
     chip.textContent=c;
-    chip.addEventListener('click', function(){ activeCategory=c; renderHome(); });
+    chip.addEventListener('click', function(){ activeCategory=c; loadAndRenderRestaurants(); refreshCatChips(); });
     catRow.appendChild(chip);
   });
 
+  var searchInput = document.getElementById('homeSearch');
+  searchInput.addEventListener('input', function(e){
+    searchQuery = e.target.value;
+    clearTimeout(window._searchDebounce);
+    window._searchDebounce = setTimeout(loadAndRenderRestaurants, 250);
+  });
+
+  loadAndRenderRestaurants();
+}
+
+function refreshCatChips(){
+  document.querySelectorAll('#catRow .catchip').forEach(function(chip){
+    chip.classList.toggle('active', chip.textContent===activeCategory);
+  });
+}
+
+function loadAndRenderRestaurants(){
+  var restList = document.getElementById('restList');
+  if (!restList) return;
   colGet('restaurants', [['status','==','APPROVED']], function(list){
-    var restList = document.getElementById('restList');
-    var filtered = list.filter(function(r){
-      return activeCategory==='All' || (r.categories||[]).indexOf(activeCategory)>-1;
-    });
-    if (filtered.length===0){ restList.innerHTML='<div class="empty">No restaurants yet in this category. Check back soon!</div>'; return; }
-    restList.innerHTML='';
-    sortByCreated(filtered).forEach(function(r){
-      var card=document.createElement('div');
-      card.className='rcard';
-      card.innerHTML =
-        '<img class="cover" src="'+(r.coverUrl||placeholderImg())+'">' +
-        '<div class="body"><div class="row1"><div class="name">'+escapeHtml(r.name)+'</div>'+
-        '<span class="status '+(r.isOpen===false?'closed':'open')+'">'+(r.isOpen===false?'Closed':'Open')+'</span></div>'+
-        '<div class="meta">'+escapeHtml((r.categories||[]).join(', '))+' · ⭐ '+ (r.rating? r.rating.toFixed(1):'New') +
-        ' · '+fmtNaira(r.deliveryFee!=null?r.deliveryFee:state.settings.deliveryFee)+' delivery</div></div>';
-      card.addEventListener('click', function(){ go({name:'restaurant', id:r.id}); });
-      restList.appendChild(card);
+    ensureFoodsCache(function(foods){
+      var q = searchQuery.trim().toLowerCase();
+      var filtered = list.filter(function(r){
+        var categoryMatch = activeCategory==='All' || (r.categories||[]).indexOf(activeCategory)>-1;
+        if (!categoryMatch) return false;
+        if (!q) return true;
+        var nameMatch = r.name.toLowerCase().indexOf(q)>-1;
+        var foodMatch = foods.some(function(f){ return f.restaurantId===r.id && f.name.toLowerCase().indexOf(q)>-1; });
+        return nameMatch || foodMatch;
+      });
+      if (filtered.length===0){ restList.innerHTML='<div class="empty">'+(q?'No matches for "'+escapeHtml(searchQuery)+'"':'No restaurants yet in this category. Check back soon!')+'</div>'; return; }
+      restList.innerHTML='';
+      sortByCreated(filtered).forEach(function(r){
+        var card=document.createElement('div');
+        card.className='rcard';
+        card.innerHTML =
+          '<img class="cover" src="'+(r.coverUrl||placeholderImg())+'">' +
+          '<div class="body"><div class="row1"><div class="name">'+escapeHtml(r.name)+'</div>'+
+          '<span class="status '+(r.isOpen===false?'closed':'open')+'">'+(r.isOpen===false?'Closed':'Open')+'</span></div>'+
+          '<div class="meta">'+escapeHtml((r.categories||[]).join(', '))+' · '+ratingLabel(r)+
+          ' · '+fmtNaira(r.deliveryFee!=null?r.deliveryFee:state.settings.deliveryFee)+' delivery</div></div>';
+        card.addEventListener('click', function(){ go({name:'restaurant', id:r.id}); });
+        restList.appendChild(card);
+      });
     });
   });
+}
+function ratingLabel(r){
+  if (r.reviewCount) return '⭐ '+r.rating.toFixed(1)+' ('+r.reviewCount+')';
+  return '⭐ New';
 }
 function placeholderImg(){
   return 'data:image/svg+xml;utf8,'+encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="400" height="200"><rect width="100%" height="100%" fill="%23E7E5E1"/></svg>');
@@ -614,7 +654,6 @@ function renderRestaurant(restId){
   $app.innerHTML = '<div id="restPage"><div class="empty">Loading...</div></div>';
   docGet('restaurants', restId, function(r){
     if (!r){ $app.innerHTML='<div class="empty">Restaurant not found</div>'; return; }
-    colGet('branches', [['restaurantId','==','']], function(){}); // no-op placeholder to keep query pattern consistent
     colGet('foods', [['restaurantId','==',restId],['available','==',true]], function(foods){
       var byCat = {};
       foods.forEach(function(f){
@@ -624,17 +663,31 @@ function renderRestaurant(restId){
         '<img class="cover" style="height:150px;object-fit:cover;width:100%" src="'+(r.coverUrl||placeholderImg())+'">' +
         '<div style="padding:12px 14px">' +
           '<h2 style="margin:0 0 4px">'+escapeHtml(r.name)+'</h2>' +
-          '<div class="muted" style="font-size:13px">'+escapeHtml(r.description||'')+'</div>' +
+          '<div style="font-size:13px;font-weight:600;color:var(--green-dark)">'+ratingLabel(r)+'</div>' +
+          '<div class="muted" style="font-size:13px;margin-top:4px">'+escapeHtml(r.description||'')+'</div>' +
           '<div class="muted" style="font-size:12.5px;margin-top:6px">🕒 '+escapeHtml(r.hours||'')+' · 🚚 '+escapeHtml(r.deliveryAreas||'')+'</div>' +
         '</div>';
       Object.keys(byCat).forEach(function(cat){
         html += '<div class="section-title">'+escapeHtml(cat)+'</div><div class="foodListCat" data-cat="'+escapeHtml(cat)+'"></div>';
       });
       if (foods.length===0) html += '<div class="empty">No menu items yet.</div>';
+      html += '<div class="section-title">Reviews</div><div id="reviewsList"><div class="empty">Loading reviews...</div></div>';
       $app.innerHTML = html;
       Object.keys(byCat).forEach(function(cat){
         var wrap = $app.querySelector('.foodListCat[data-cat="'+CSS.escape(cat)+'"]');
         byCat[cat].forEach(function(f){ wrap.appendChild(foodCardEl(f, r)); });
+      });
+      colGet('reviews', [['restaurantId','==',restId]], function(reviews){
+        var holder = document.getElementById('reviewsList');
+        reviews = sortByCreated(reviews);
+        if (reviews.length===0){ holder.innerHTML='<div class="empty">No reviews yet</div>'; return; }
+        holder.innerHTML='';
+        reviews.slice(0,10).forEach(function(rv){
+          var row=document.createElement('div'); row.className='listrow';
+          row.innerHTML='<div class="top"><strong>'+'⭐'.repeat(rv.rating)+'</strong></div>'+
+            (rv.comment? '<div class="sub">'+escapeHtml(rv.comment)+'</div>':'');
+          holder.appendChild(row);
+        });
       });
     });
   });
@@ -864,9 +917,58 @@ function renderOrderDetail(orderId){
       '<div class="rowline total"><span>Total</span><span>'+fmtNaira(o.total)+'</span></div></div>' +
       '<div class="card"><h3>Status</h3>'+stepsHtml+'</div>' +
       (o.riderId ? '<div class="card"><h3>Rider</h3><div class="rowline"><span>'+escapeHtml(o.riderName||'')+'</span><span>'+escapeHtml(o.riderPhone||'')+'</span></div></div>' : '') +
-      (o.status==='PENDING_PAYMENT' ? '<div style="padding:0 14px"><button class="btn block" id="payNowBtn">Complete Payment</button></div>' : '');
+      (o.status==='PENDING_PAYMENT' ? '<div style="padding:0 14px"><button class="btn block" id="payNowBtn">Complete Payment</button></div>' : '') +
+      (o.status==='DELIVERED' && !o.reviewed ? '<div style="padding:0 14px"><button class="btn block amber" id="rateOrderBtn">Rate This Order</button></div>' : '') +
+      (o.status==='DELIVERED' && o.reviewed ? '<div class="empty">You already rated this order. Thank you!</div>' : '');
     var payBtn=document.getElementById('payNowBtn');
     if (payBtn) payBtn.addEventListener('click', function(){ go({name:'payment', orderId:o.id}); });
+    var rateBtn=document.getElementById('rateOrderBtn');
+    if (rateBtn) rateBtn.addEventListener('click', function(){ openReviewModal(o); });
+  });
+}
+
+function openReviewModal(o){
+  var selectedRating = 5;
+  var html = '<h3>Rate '+escapeHtml(o.restaurantName)+'</h3>' +
+    '<div id="starPicker" style="display:flex;gap:6px;padding:0 14px 12px;font-size:30px"></div>' +
+    '<div class="field"><label>Comment (optional)</label><textarea id="reviewComment"></textarea></div>' +
+    '<div style="padding:0 14px"><button class="btn block" id="submitReviewBtn">Submit Review</button></div>';
+  openModal(html);
+  var starPicker = document.getElementById('starPicker');
+  function drawStars(){
+    starPicker.innerHTML='';
+    for (var i=1;i<=5;i++){
+      (function(i){
+        var s=document.createElement('span');
+        s.textContent = i<=selectedRating ? '⭐':'☆';
+        s.style.cursor='pointer';
+        s.addEventListener('click', function(){ selectedRating=i; drawStars(); });
+        starPicker.appendChild(s);
+      })(i);
+    }
+  }
+  drawStars();
+  document.getElementById('submitReviewBtn').addEventListener('click', function(){
+    var comment = document.getElementById('reviewComment').value.trim();
+    docAdd('reviews', {
+      orderId:o.id, restaurantId:o.restaurantId, customerId:state.user.uid,
+      rating:selectedRating, comment:comment, createdAt:nowTS()
+    }, function(id){
+      if (!id) return;
+      docSet('orders', o.id, {reviewed:true});
+      recomputeRestaurantRating(o.restaurantId);
+      closeModal();
+      toast('Thanks for your review!');
+      go({name:'orderDetail', id:o.id});
+    });
+  });
+}
+
+function recomputeRestaurantRating(restaurantId){
+  colGet('reviews', [['restaurantId','==',restaurantId]], function(list){
+    var count = list.length;
+    var avg = count ? (list.reduce(function(s,r){return s+r.rating;},0)/count) : 0;
+    docSet('restaurants', restaurantId, {rating:avg, reviewCount:count});
   });
 }
 
@@ -1102,12 +1204,17 @@ function renderRestMenu(r, body){
         '<div class="sub">'+escapeHtml(f.category||'')+' · '+fmtNaira(f.price)+'</div>'+
         '<div class="actions"><button class="btn small outline" data-a="toggle">Toggle Stock</button><button class="btn small" data-a="edit">Edit</button></div>';
       row.querySelector('[data-a="toggle"]').addEventListener('click', function(){
-        docSet('foods', f.id, {available: !f.available}, function(){ renderRestDashboard(); });
+        docSet('foods', f.id, {available: !f.available}, function(){ refreshDashboard(); });
       });
       row.querySelector('[data-a="edit"]').addEventListener('click', function(){ openFoodForm(r, f); });
       holder.appendChild(row);
     });
   });
+}
+
+function refreshDashboard(){
+  if (state.role==='admin') renderAdminDashboard();
+  else renderRestDashboard();
 }
 
 function openFoodForm(r, existing){
@@ -1130,7 +1237,7 @@ function openFoodForm(r, existing){
       if (imgUrl) data.imageUrl = imgUrl;
       var id = existing? existing.id : uid();
       docSet('foods', id, data, function(ok){
-        if (ok){ closeModal(); toast('Saved'); renderRestDashboard(); }
+        if (ok){ closeModal(); toast('Saved'); refreshDashboard(); }
       });
     }
     var fileInput=document.getElementById('fImg');
@@ -1165,7 +1272,7 @@ function openBranchForm(r){
   document.getElementById('saveBranchBtn').addEventListener('click', function(){
     docAdd('branches', {restaurantId:r.id, name:document.getElementById('bName').value.trim(),
       address:document.getElementById('bAddress').value.trim(), createdAt:nowTS()}, function(id){
-      if (id){ closeModal(); renderRestDashboard(); }
+      if (id){ closeModal(); refreshDashboard(); }
     });
   });
 }
@@ -1318,22 +1425,27 @@ function renderAdminOverview(body){
 }
 
 function renderAdminRestaurants(body){
-  body.innerHTML='<div class="empty">Loading...</div>';
+  body.innerHTML='<div style="padding:0 14px 10px"><button class="btn block" id="adminAddRestBtn">+ Add Restaurant</button></div><div class="empty">Loading...</div>';
+  document.getElementById('adminAddRestBtn').addEventListener('click', openAdminRestaurantForm);
   colGet('restaurants',[],function(list){
     list = sortByCreated(list);
-    if (list.length===0){ body.innerHTML='<div class="empty">No restaurants yet</div>'; return; }
-    body.innerHTML='';
+    var listHolder = document.createElement('div');
+    if (list.length===0){ listHolder.innerHTML='<div class="empty">No restaurants yet</div>'; }
     list.forEach(function(r){
       var row=document.createElement('div'); row.className='listrow';
       var actions='';
       if (r.status==='PENDING') actions='<button class="btn small" data-a="approve">Approve</button><button class="btn small danger" data-a="reject">Reject</button>';
       else if (r.status==='APPROVED') actions='<button class="btn small danger" data-a="suspend">Suspend</button>';
       else actions='<button class="btn small" data-a="approve">Reactivate</button>';
+      actions += '<button class="btn small outline" data-a="menu">Manage Menu</button><button class="btn small outline" data-a="branches">Branches</button><button class="btn small outline" data-a="edit">Edit Profile</button>';
       row.innerHTML='<div class="top"><strong>'+escapeHtml(r.name)+'</strong><span class="tag '+(r.status==='APPROVED'?'paid':r.status==='PENDING'?'pending':'rejected')+'">'+r.status+'</span></div>'+
         '<div class="sub">'+escapeHtml(r.phone||'')+'</div><div class="actions">'+actions+'</div>';
       row.querySelectorAll('[data-a]').forEach(function(b){
         b.addEventListener('click', function(){
           var a=b.getAttribute('data-a');
+          if (a==='menu'){ adminMenuModal(r); return; }
+          if (a==='branches'){ adminBranchModal(r); return; }
+          if (a==='edit'){ openAdminRestaurantEditForm(r); return; }
           var st = a==='approve'?'APPROVED':a==='reject'?'REJECTED':'SUSPENDED';
           docSet('restaurants', r.id, {status:st}, function(){
             notifyUser(r.ownerId, 'Your restaurant is now '+st);
@@ -1341,7 +1453,117 @@ function renderAdminRestaurants(body){
           });
         });
       });
-      body.appendChild(row);
+      listHolder.appendChild(row);
+    });
+    body.appendChild(listHolder);
+  });
+}
+
+// Creates a restaurant + its owner login without disturbing the admin's own
+// signed-in session (uses a second, independent Firebase Auth instance).
+function createAuthUserSecondary(email, password, cb){
+  var secApp;
+  try { secApp = firebase.app('Secondary'); } catch(e){ secApp = firebase.initializeApp(firebaseConfig, 'Secondary'); }
+  var secAuth = secApp.auth();
+  secAuth.createUserWithEmailAndPassword(email, password).then(function(cred){
+    var newUid = cred.user.uid;
+    secAuth.signOut().then(function(){ cb(newUid); }).catch(function(){ cb(newUid); });
+  }).catch(function(err){ toast(err.message); cb(null); });
+}
+
+function openAdminRestaurantForm(){
+  var html = '<h3>Add Restaurant</h3>' +
+    '<div class="field"><label>Restaurant name</label><input id="arName"></div>' +
+    '<div class="field"><label>Phone</label><input id="arPhone"></div>' +
+    '<div class="field"><label>Categories (comma separated)</label><input id="arCats" placeholder="Rice, Grills"></div>' +
+    '<div class="field"><label>Owner login email</label><input id="arEmail" type="email"></div>' +
+    '<div class="field"><label>Owner login password (min 6 characters)</label><input id="arPass" type="password"></div>' +
+    '<p class="empty">This creates the restaurant already approved, plus a login the owner can use to manage their own menu and orders.</p>' +
+    '<div style="padding:0 14px"><button class="btn block" id="arSaveBtn">Create Restaurant</button></div>';
+  openModal(html);
+  document.getElementById('arSaveBtn').addEventListener('click', function(){
+    var name=val('arName'), phone=val('arPhone'), email=val('arEmail'), pass=val('arPass');
+    var cats = val('arCats').split(',').map(function(s){return s.trim();}).filter(Boolean);
+    if (!name||!email||!pass){ toast('Fill in name, email and password'); return; }
+    if (pass.length<6){ toast('Password must be at least 6 characters'); return; }
+    var btn=document.getElementById('arSaveBtn'); btn.disabled=true; btn.textContent='Creating...';
+    createAuthUserSecondary(email, pass, function(newUid){
+      if (!newUid){ btn.disabled=false; btn.textContent='Create Restaurant'; return; }
+      docSet('users', newUid, {email:email, role:'restaurant', status:'ACTIVE', createdAt:nowTS()});
+      docSet('restaurants', newUid, {
+        ownerId:newUid, name:name, phone:phone, description:'', logoUrl:'', coverUrl:'',
+        hours:'', deliveryAreas:'', categories:cats, status:'APPROVED', createdAt:nowTS()
+      }, function(ok){
+        if (ok){ closeModal(); toast('Restaurant created — share the login with the owner'); renderAdminDashboard(); }
+      });
+    });
+  });
+  function val(id){ return document.getElementById(id).value.trim(); }
+}
+
+function openAdminRestaurantEditForm(r){
+  var html = '<h3>Edit '+escapeHtml(r.name)+'</h3>' +
+    '<div class="field"><label>Restaurant name</label><input id="aeName" value="'+escapeHtml(r.name||'')+'"></div>' +
+    '<div class="field"><label>Phone</label><input id="aePhone" value="'+escapeHtml(r.phone||'')+'"></div>' +
+    '<div class="field"><label>Description</label><textarea id="aeDesc">'+escapeHtml(r.description||'')+'</textarea></div>' +
+    '<div class="field"><label>Operating hours</label><input id="aeHours" value="'+escapeHtml(r.hours||'')+'"></div>' +
+    '<div class="field"><label>Delivery areas</label><input id="aeAreas" value="'+escapeHtml(r.deliveryAreas||'')+'"></div>' +
+    '<div class="field"><label>Categories (comma separated)</label><input id="aeCats" value="'+escapeHtml((r.categories||[]).join(', '))+'"></div>' +
+    '<div style="padding:0 14px"><button class="btn block" id="aeSaveBtn">Save</button></div>';
+  openModal(html);
+  document.getElementById('aeSaveBtn').addEventListener('click', function(){
+    var data = {
+      name:val('aeName'), phone:val('aePhone'), description:val('aeDesc'),
+      hours:val('aeHours'), deliveryAreas:val('aeAreas'),
+      categories: val('aeCats').split(',').map(function(s){return s.trim();}).filter(Boolean)
+    };
+    docSet('restaurants', r.id, data, function(ok){
+      if (ok){ closeModal(); toast('Saved'); renderAdminDashboard(); }
+    });
+  });
+  function val(id){ return document.getElementById(id).value.trim(); }
+}
+
+function adminBranchModal(r){
+  var html = '<h3>Branches — '+escapeHtml(r.name)+'</h3>' +
+    '<div style="padding:0 14px 10px"><button class="btn block" id="adminAddBranchBtn">+ Add Branch</button></div>' +
+    '<div id="adminBranchListModal"><div class="empty">Loading...</div></div>';
+  openModal(html);
+  document.getElementById('adminAddBranchBtn').addEventListener('click', function(){ openBranchForm(r); });
+  colGet('branches', [['restaurantId','==',r.id]], function(list){
+    var holder = document.getElementById('adminBranchListModal');
+    if (!holder) return;
+    if (list.length===0){ holder.innerHTML='<div class="empty">No branches yet</div>'; return; }
+    holder.innerHTML='';
+    list.forEach(function(b){
+      var row=document.createElement('div'); row.className='listrow';
+      row.innerHTML='<div class="top"><strong>'+escapeHtml(b.name)+'</strong></div><div class="sub">'+escapeHtml(b.address||'')+'</div>';
+      holder.appendChild(row);
+    });
+  });
+}
+
+function adminMenuModal(r){
+  var html = '<h3>Menu — '+escapeHtml(r.name)+'</h3>' +
+    '<div style="padding:0 14px 10px"><button class="btn block" id="adminAddFoodBtn">+ Add Food Item</button></div>' +
+    '<div id="adminFoodListModal"><div class="empty">Loading...</div></div>';
+  openModal(html);
+  document.getElementById('adminAddFoodBtn').addEventListener('click', function(){ openFoodForm(r); });
+  colGet('foods', [['restaurantId','==',r.id]], function(list){
+    var holder = document.getElementById('adminFoodListModal');
+    if (!holder) return;
+    if (list.length===0){ holder.innerHTML='<div class="empty">No food items yet</div>'; return; }
+    holder.innerHTML='';
+    list.forEach(function(f){
+      var row=document.createElement('div'); row.className='listrow';
+      row.innerHTML='<div class="top"><strong>'+escapeHtml(f.name)+'</strong><span class="tag '+(f.available?'paid':'rejected')+'">'+(f.available?'Available':'Out of stock')+'</span></div>'+
+        '<div class="sub">'+escapeHtml(f.category||'')+' · '+fmtNaira(f.price)+'</div>'+
+        '<div class="actions"><button class="btn small outline" data-a="toggle">Toggle Stock</button><button class="btn small" data-a="edit">Edit</button></div>';
+      row.querySelector('[data-a="toggle"]').addEventListener('click', function(){
+        docSet('foods', f.id, {available: !f.available}, function(){ adminMenuModal(r); });
+      });
+      row.querySelector('[data-a="edit"]').addEventListener('click', function(){ openFoodForm(r, f); });
+      holder.appendChild(row);
     });
   });
 }

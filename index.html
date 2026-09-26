@@ -416,6 +416,12 @@ auth.onAuthStateChanged(function(user){
   docGet('users', user.uid, function(p){
     state.profile = p || {role:'customer', status:'ACTIVE'};
     state.role = state.profile.role || 'customer';
+    var isAdminEmail = user.email && user.email.trim().toLowerCase() === ADMIN_EMAIL.toLowerCase();
+    if (isAdminEmail && state.role !== 'admin'){
+      state.role = 'admin';
+      state.profile = Object.assign(state.profile, {role:'admin', status:'ACTIVE'});
+      docSet('users', user.uid, {role:'admin', status:'ACTIVE'});
+    }
     loadSettings(function(){ render(); loadNotifCount(); });
   });
 });

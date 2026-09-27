@@ -393,6 +393,10 @@ function registerAccount(role, email, password, extra, cb){
         docSet('loyaltyAccounts', cred.user.uid, {userId:cred.user.uid, points:0});
       }
       notifyAdmin('New '+baseRole+' registration: '+(extra.name||extra.businessName||email));
+      // Set app state directly instead of waiting on the auth listener,
+      // which can otherwise read this doc before this write has landed.
+      state.profile = profile;
+      state.role = baseRole;
       cb(true);
     });
   }).catch(function(err){ toast(err.message); cb(false); });
@@ -413,7 +417,18 @@ function notifyUser(uidTarget, msg){
 auth.onAuthStateChanged(function(user){
   state.user = user;
   if (!user){ state.role='guest'; state.profile=null; render(); return; }
+  loadProfileWithRetry(user, 5);
+});
+
+// Right after signup, the users/{uid} doc write can still be in flight when
+// this fires, which would wrongly default the role to 'customer'. Retry a
+// few times before giving up, so registration doesn't race Firestore.
+function loadProfileWithRetry(user, retriesLeft){
   docGet('users', user.uid, function(p){
+    if (!p && retriesLeft>0){
+      setTimeout(function(){ loadProfileWithRetry(user, retriesLeft-1); }, 700);
+      return;
+    }
     state.profile = p || {role:'customer', status:'ACTIVE'};
     state.role = state.profile.role || 'customer';
     var isAdminEmail = user.email && user.email.trim().toLowerCase() === ADMIN_EMAIL.toLowerCase();
@@ -424,7 +439,7 @@ auth.onAuthStateChanged(function(user){
     }
     loadSettings(function(){ render(); loadNotifCount(); });
   });
-});
+}
 
 function loadSettings(cb){
   docGet('settings','platform', function(s){
@@ -740,6 +755,7 @@ function addToCart(f, restaurant){
       restaurantId:f.restaurantId, branchId:f.branchId||null, restaurantName:restaurant.name
     });
   }
+  saveCartToStorage();
   updateCartBadge();
   toast(f.name+' added to cart');
 }
@@ -748,7 +764,17 @@ function changeQty(foodId, delta){
   if (!item) return;
   item.qty += delta;
   if (item.qty<=0) state.cart = state.cart.filter(function(i){return i.foodId!==foodId;});
+  saveCartToStorage();
   updateCartBadge();
+}
+function saveCartToStorage(){
+  try { localStorage.setItem('ocrown_cart', JSON.stringify(state.cart)); } catch(e){}
+}
+function loadCartFromStorage(){
+  try {
+    var raw = localStorage.getItem('ocrown_cart');
+    return raw ? JSON.parse(raw) : [];
+  } catch(e){ return []; }
 }
 
 /* =========================================================================
@@ -772,15 +798,18 @@ function renderCart(){
     '<div style="padding:0 14px"><button class="btn block" id="clearCartBtn" style="background:transparent;color:var(--danger);border:1px solid var(--danger);margin-bottom:10px">Clear Cart</button>' +
     '<button class="btn block" id="checkoutBtn">Proceed to Checkout</button></div>';
   $app.innerHTML = html;
-  document.getElementById('clearCartBtn').addEventListener('click', function(){ state.cart=[]; renderCart(); updateCartBadge(); });
+  document.getElementById('clearCartBtn').addEventListener('click', function(){ state.cart=[]; saveCartToStorage(); renderCart(); updateCartBadge(); });
   document.getElementById('checkoutBtn').addEventListener('click', function(){
     if (!state.user){ toast('Please login to checkout'); go({name:'auth'}); return; }
     go({name:'checkout'});
   });
 }
 
+var appliedPromo = null;
+
 function renderCheckout(){
   if (state.cart.length===0){ go({name:'home'}); return; }
+  appliedPromo = null;
   var deliveryFee = state.settings.deliveryFee;
   var subtotal = state.cart.reduce(function(s,i){return s+i.price*i.qty;},0);
   $app.innerHTML =
@@ -789,10 +818,39 @@ function renderCheckout(){
     '<div class="field"><label>Phone number</label><input id="ckPhone" value="'+escapeHtml((state.profile&&state.profile.phone)||'')+'"></div>' +
     '<div class="field"><label>Delivery address</label><textarea id="ckAddress">'+escapeHtml((state.profile&&state.profile.address)||'')+'</textarea></div>' +
     '<div class="field"><label>Delivery instructions (optional)</label><input id="ckNote"></div>' +
-    '<div class="card"><div class="rowline"><span>Subtotal</span><span>'+fmtNaira(subtotal)+'</span></div>' +
-    '<div class="rowline"><span>Delivery fee</span><span>'+fmtNaira(deliveryFee)+'</span></div>' +
-    '<div class="rowline total"><span>Total</span><span>'+fmtNaira(subtotal+deliveryFee)+'</span></div></div>' +
+    '<div class="field"><label>Promo code (optional)</label><div style="display:flex;gap:8px">' +
+      '<input id="ckPromo" style="flex:1"><button class="btn small" id="applyPromoBtn" type="button">Apply</button></div>' +
+      '<div id="promoMsg" style="font-size:12px;margin-top:4px"></div></div>' +
+    '<div class="card" id="ckSummary"></div>' +
     '<div style="padding:0 14px"><button class="btn block" id="placeOrderBtn">Place Order (Pay by Bank Transfer)</button></div>';
+
+  function drawSummary(){
+    var discount = appliedPromo ? appliedPromo.discountAmount : 0;
+    var total = subtotal + deliveryFee - discount;
+    var html = '<div class="rowline"><span>Subtotal</span><span>'+fmtNaira(subtotal)+'</span></div>' +
+      '<div class="rowline"><span>Delivery fee</span><span>'+fmtNaira(deliveryFee)+'</span></div>';
+    if (discount>0) html += '<div class="rowline"><span>Discount ('+escapeHtml(appliedPromo.code)+')</span><span>-'+fmtNaira(discount)+'</span></div>';
+    html += '<div class="rowline total"><span>Total</span><span>'+fmtNaira(total)+'</span></div>';
+    document.getElementById('ckSummary').innerHTML = html;
+  }
+  drawSummary();
+
+  document.getElementById('applyPromoBtn').addEventListener('click', function(){
+    var code = document.getElementById('ckPromo').value.trim().toUpperCase();
+    var msg = document.getElementById('promoMsg');
+    if (!code){ msg.textContent=''; appliedPromo=null; drawSummary(); return; }
+    colGet('promotions', [['code','==',code]], function(list){
+      var promo = list[0];
+      if (!promo || !promo.active){ msg.style.color='var(--danger)'; msg.textContent='Invalid or inactive code'; appliedPromo=null; drawSummary(); return; }
+      if (promo.usageLimit && promo.usedCount>=promo.usageLimit){ msg.style.color='var(--danger)'; msg.textContent='This code has reached its usage limit'; appliedPromo=null; drawSummary(); return; }
+      if (promo.minOrder && subtotal<promo.minOrder){ msg.style.color='var(--danger)'; msg.textContent='Minimum order of '+fmtNaira(promo.minOrder)+' required'; appliedPromo=null; drawSummary(); return; }
+      var discountAmount = promo.type==='percent' ? Math.round(subtotal*promo.value/100) : promo.value;
+      discountAmount = Math.min(discountAmount, subtotal);
+      appliedPromo = {id:promo.id, code:promo.code, discountAmount:discountAmount};
+      msg.style.color='var(--green-dark)'; msg.textContent='Applied! You saved '+fmtNaira(discountAmount);
+      drawSummary();
+    });
+  });
 
   document.getElementById('placeOrderBtn').addEventListener('click', function(){
     var name=document.getElementById('ckName').value.trim();
@@ -800,21 +858,29 @@ function renderCheckout(){
     var address=document.getElementById('ckAddress').value.trim();
     var note=document.getElementById('ckNote').value.trim();
     if (!name||!phone||!address){ toast('Please fill in all required fields'); return; }
+    var discount = appliedPromo ? appliedPromo.discountAmount : 0;
     var order = {
       customerId: state.user.uid, customerName:name, customerPhone:phone,
       deliveryAddress:address, deliveryNote:note,
       restaurantId: state.cart[0].restaurantId, restaurantName: state.cart[0].restaurantName,
       branchId: state.cart[0].branchId || null,
       items: state.cart.map(function(i){return {foodId:i.foodId,name:i.name,price:i.price,qty:i.qty};}),
-      subtotal: subtotal, deliveryFee: deliveryFee, discount:0,
-      total: subtotal+deliveryFee,
+      subtotal: subtotal, deliveryFee: deliveryFee, discount:discount,
+      promoCode: appliedPromo ? appliedPromo.code : null,
+      total: subtotal+deliveryFee-discount,
       status: 'PENDING_PAYMENT', paymentStatus:'PENDING',
       statusHistory:[{status:'PENDING_PAYMENT', at:Date.now(), by:state.user.uid, from:null}],
       createdAt: nowTS()
     };
     docAdd('orders', order, function(orderId){
       if (!orderId){ return; }
+      if (appliedPromo){
+        docGet('promotions', appliedPromo.id, function(p){
+          if (p) docSet('promotions', appliedPromo.id, {usedCount:(p.usedCount||0)+1});
+        });
+      }
       state.cart = [];
+      saveCartToStorage();
       updateCartBadge();
       notifyAdmin('New order #'+orderId.slice(-6).toUpperCase());
       go({name:'payment', orderId:orderId});
@@ -1569,11 +1635,12 @@ function adminMenuModal(r){
 }
 
 function renderAdminRiders(body){
-  body.innerHTML='<div class="empty">Loading...</div>';
+  body.innerHTML='<div style="padding:0 14px 10px"><button class="btn block" id="adminAddRiderBtn">+ Add Rider</button></div><div class="empty">Loading...</div>';
+  document.getElementById('adminAddRiderBtn').addEventListener('click', openAdminRiderForm);
   colGet('riders',[],function(list){
     list = sortByCreated(list);
-    if (list.length===0){ body.innerHTML='<div class="empty">No riders yet</div>'; return; }
-    body.innerHTML='';
+    var listHolder = document.createElement('div');
+    if (list.length===0){ listHolder.innerHTML='<div class="empty">No riders yet</div>'; }
     list.forEach(function(r){
       var row=document.createElement('div'); row.className='listrow';
       var actions='';
@@ -1592,9 +1659,41 @@ function renderAdminRiders(body){
           });
         });
       });
-      body.appendChild(row);
+      listHolder.appendChild(row);
+    });
+    body.appendChild(listHolder);
+  });
+}
+
+function openAdminRiderForm(){
+  var html = '<h3>Add Rider</h3>' +
+    '<div class="field"><label>Full name</label><input id="arRName"></div>' +
+    '<div class="field"><label>Phone</label><input id="arRPhone"></div>' +
+    '<div class="field"><label>Vehicle (e.g. motorbike, bicycle)</label><input id="arRVehicle"></div>' +
+    '<div class="field"><label>ID information (e.g. NIN, drivers license no.)</label><input id="arRId"></div>' +
+    '<div class="field"><label>Login email</label><input id="arREmail" type="email"></div>' +
+    '<div class="field"><label>Login password (min 6 characters)</label><input id="arRPass" type="password"></div>' +
+    '<p class="empty">This creates the rider already approved, plus a login the rider can use to accept deliveries.</p>' +
+    '<div style="padding:0 14px"><button class="btn block" id="arRSaveBtn">Create Rider</button></div>';
+  openModal(html);
+  document.getElementById('arRSaveBtn').addEventListener('click', function(){
+    var name=val('arRName'), phone=val('arRPhone'), vehicle=val('arRVehicle'), idInfo=val('arRId');
+    var email=val('arREmail'), pass=val('arRPass');
+    if (!name||!email||!pass){ toast('Fill in name, email and password'); return; }
+    if (pass.length<6){ toast('Password must be at least 6 characters'); return; }
+    var btn=document.getElementById('arRSaveBtn'); btn.disabled=true; btn.textContent='Creating...';
+    createAuthUserSecondary(email, pass, function(newUid){
+      if (!newUid){ btn.disabled=false; btn.textContent='Create Rider'; return; }
+      docSet('users', newUid, {email:email, role:'rider', status:'ACTIVE', name:name, phone:phone, createdAt:nowTS()});
+      docSet('riders', newUid, {
+        userId:newUid, name:name, phone:phone, vehicle:vehicle, idInfo:idInfo,
+        photoUrl:'', status:'APPROVED', availability:'Offline', createdAt:nowTS()
+      }, function(ok){
+        if (ok){ closeModal(); toast('Rider created — share the login with them'); renderAdminDashboard(); }
+      });
     });
   });
+  function val(id){ return document.getElementById(id).value.trim(); }
 }
 
 function renderAdminPayments(body){
@@ -1729,7 +1828,7 @@ function renderAdminSettings(body){
 /* =========================================================================
    INITIAL BOOT
    ========================================================================= */
-loadSettings(function(){ render(); });
+loadSettings(function(){ state.cart = loadCartFromStorage(); render(); });
 </script>
 </body>
 </html>

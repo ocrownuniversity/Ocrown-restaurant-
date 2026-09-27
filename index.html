@@ -15,7 +15,9 @@
     --muted:#6B6F76;
     --line:#E7E5E1;
     --danger:#C0392B;
-    --radius:14px;
+    --radius:16px;
+    --shadow:0 6px 20px rgba(11,110,79,0.08);
+    --shadow-sm:0 2px 8px rgba(20,20,20,0.06);
   }
   *{box-sizing:border-box;}
   body{margin:0;padding:0;}
@@ -52,7 +54,7 @@
 
   /* ---------- layout ---------- */
   #app{max-width:520px;margin:0 auto;padding-bottom:70px;min-height:70vh;}
-  .section-title{font-size:15px;font-weight:700;margin:18px 14px 8px;color:var(--ink);}
+  .section-title{font-size:15.5px;font-weight:800;margin:20px 14px 10px;color:var(--ink);letter-spacing:-0.2px;}
   .hscroll{display:flex;gap:10px;overflow-x:auto;padding:2px 14px 10px;scrollbar-width:none;}
   .hscroll::-webkit-scrollbar{display:none;}
   .catchip{
@@ -63,16 +65,17 @@
 
   .rcard{
     background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
-    margin:0 14px 14px;overflow:hidden;
+    margin:0 14px 14px;overflow:hidden;box-shadow:var(--shadow-sm);transition:transform .15s;
   }
-  .rcard .cover{width:100%;height:120px;object-fit:cover;background:var(--line);}
-  .rcard .body{padding:10px 12px;}
+  .rcard:active{transform:scale(0.98);}
+  .rcard .cover{width:100%;height:130px;object-fit:cover;background:var(--line);}
+  .rcard .body{padding:11px 13px;}
   .rcard .row1{display:flex;align-items:center;gap:8px;}
-  .rcard .name{font-weight:700;font-size:15px;flex:1;}
+  .rcard .name{font-weight:800;font-size:15.5px;flex:1;letter-spacing:-0.2px;}
   .rcard .status{font-size:11px;font-weight:700;padding:2px 8px;border-radius:999px;}
   .status.open{background:#E6F4EE;color:var(--green-dark);}
   .status.closed{background:#F5E6E6;color:var(--danger);}
-  .rcard .meta{color:var(--muted);font-size:12.5px;margin-top:4px;}
+  .rcard .meta{color:var(--muted);font-size:12.5px;margin-top:5px;}
 
   .foodcard{
     display:flex;gap:10px;background:var(--card);border:1px solid var(--line);
@@ -164,11 +167,30 @@
   .closex{position:absolute;top:14px;right:18px;font-size:20px;background:none;border:none;color:var(--muted);}
 
   .hero{
-    background:linear-gradient(135deg,var(--green),var(--green-dark));color:#fff;
-    padding:22px 16px 26px;
+    background:var(--green);color:#fff;
+    padding:20px 16px 34px;position:relative;overflow:hidden;text-align:center;
   }
-  .hero h1{margin:0 0 6px;font-size:21px;}
-  .hero p{margin:0;opacity:.9;font-size:13px;}
+  .hero h1{margin:6px 0 4px;font-size:28px;font-weight:800;letter-spacing:-0.5px;line-height:1.15;}
+  .hero p{margin:0;opacity:.85;font-size:13.5px;font-weight:600;}
+  .floatCard{
+    background:#fff;border-radius:16px;box-shadow:var(--shadow);
+    margin:-22px 14px 0;padding:12px;position:relative;z-index:2;
+  }
+  .locateBtn{
+    width:38px;height:38px;border-radius:50%;background:#E6F4EE;border:none;
+    display:flex;align-items:center;justify-content:center;font-size:16px;flex:0 0 auto;
+  }
+
+  .catbubble{
+    flex:0 0 auto;display:flex;flex-direction:column;align-items:center;gap:6px;
+    background:none;border:none;padding:4px;width:64px;
+  }
+  .catbubble .cb-circle{
+    width:56px;height:56px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+    font-size:24px;box-shadow:var(--shadow-sm);
+  }
+  .catbubble.active .cb-circle{outline:2.5px solid var(--green);outline-offset:2px;}
+  .catbubble .cb-label{font-size:10.5px;font-weight:700;color:var(--ink);white-space:nowrap;}
 
   #toast{
     position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:var(--ink);
@@ -185,21 +207,10 @@
   .roleSwitch button{flex:1;padding:10px;border-radius:10px;border:1px solid var(--line);background:#fff;font-weight:700;font-size:13px;}
   .roleSwitch button.active{background:var(--green);color:#fff;border-color:var(--green);}
 
-  .caticon{
-    flex:0 0 auto;display:flex;flex-direction:column;align-items:center;gap:4px;
-    background:none;border:none;padding:4px 4px;width:60px;
-  }
-  .caticon .ci-emoji{
-    width:46px;height:46px;border-radius:50%;background:var(--card);border:1px solid var(--line);
-    display:flex;align-items:center;justify-content:center;font-size:22px;
-  }
-  .caticon.active .ci-emoji{background:var(--green);border-color:var(--green);}
-  .caticon .ci-label{font-size:10.5px;font-weight:600;color:var(--muted);white-space:nowrap;}
-  .caticon.active .ci-label{color:var(--green-dark);}
 
   .pcard{
-    flex:0 0 auto;width:150px;background:var(--card);border:1px solid var(--line);
-    border-radius:var(--radius);overflow:hidden;
+    flex:0 0 auto;width:150px;background:var(--card);border-radius:var(--radius);
+    overflow:hidden;box-shadow:var(--shadow-sm);
   }
   .pcard img{width:100%;height:90px;object-fit:cover;background:var(--line);}
   .pcard .pname{font-size:12.5px;font-weight:700;padding:6px 8px 0;}
@@ -637,9 +648,11 @@ function escapeHtml(s){
    HOME / DISCOVERY  (address bar, icon categories, popular row, main list)
    ========================================================================= */
 var FOOD_CATEGORIES = [
-  {name:"All", icon:"🍽️"}, {name:"Rice", icon:"🍚"}, {name:"Swallow", icon:"🍲"},
-  {name:"Grills", icon:"🍢"}, {name:"Pastries", icon:"🥐"}, {name:"Drinks", icon:"🥤"},
-  {name:"Soups", icon:"🍜"}, {name:"Snacks", icon:"🍟"}, {name:"Continental", icon:"🍝"}
+  {name:"All", icon:"🍽️", bg:"#E6F4EE"}, {name:"Rice", icon:"🍚", bg:"#FFF3D6"},
+  {name:"Swallow", icon:"🍲", bg:"#F5E6E6"}, {name:"Grills", icon:"🍢", bg:"#FDE9D9"},
+  {name:"Pastries", icon:"🥐", bg:"#F3E8FF"}, {name:"Drinks", icon:"🥤", bg:"#E3F2FD"},
+  {name:"Soups", icon:"🍜", bg:"#FFE8E0"}, {name:"Snacks", icon:"🍟", bg:"#FFF9DB"},
+  {name:"Continental", icon:"🍝", bg:"#E8F5E9"}
 ];
 var activeCategory = "All";
 var searchQuery = "";
@@ -662,29 +675,43 @@ function setDeliveryAddress(addr){
 function renderHome(){
   var addr = getDeliveryAddress();
   $app.innerHTML = ''
-   + '<div class="hero" style="padding-bottom:18px">' +
-       '<div id="addressBar" style="display:flex;align-items:center;gap:8px;cursor:pointer;background:rgba(255,255,255,.15);border-radius:10px;padding:9px 12px;margin-bottom:12px">' +
-         '<span style="font-size:16px">📍</span>' +
-         '<div style="flex:1;overflow:hidden"><div style="font-size:10.5px;opacity:.85;line-height:1.2">DELIVER TO</div>' +
-         '<div style="font-size:13px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+(addr?escapeHtml(addr):'Set your delivery address')+'</div></div>' +
-         '<span style="font-size:12px;opacity:.85">Change ›</span>' +
-       '</div>' +
-       '<h1 style="font-size:19px">Good food, delivered fast.</h1>' +
+   + '<div class="hero">' +
+       '<h1>Food delivery,<br>done right.</h1>' +
+       '<p>Restaurants near you, across Nigeria.</p>' +
      '</div>'
-   + '<div class="field" style="margin:12px 14px 4px"><input id="homeSearch" placeholder="Search restaurants or food..." value="'+escapeHtml(searchQuery)+'"></div>'
-   + '<div class="section-title">Categories</div>'
+   + '<div class="floatCard">' +
+       '<div id="addressBar" style="display:flex;align-items:center;gap:10px;cursor:pointer;padding-bottom:10px;border-bottom:1px solid var(--line);margin-bottom:10px">' +
+         '<span style="font-size:18px">📍</span>' +
+         '<div style="flex:1;overflow:hidden"><div style="font-size:10.5px;color:var(--muted);font-weight:700;line-height:1.2">DELIVER TO</div>' +
+         '<div style="font-size:13.5px;font-weight:700;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+(addr?escapeHtml(addr):"What's your address?")+'</div></div>' +
+         '<button class="locateBtn" id="locateBtn" type="button" title="Use current location">➤</button>' +
+       '</div>' +
+       '<input id="homeSearch" placeholder="Search restaurants or food..." value="'+escapeHtml(searchQuery)+'" style="border:1px solid var(--line);border-radius:10px;padding:11px 12px;font-size:14.5px;width:100%">' +
+     '</div>'
+   + '<div class="section-title">Browse by category</div>'
    + '<div class="hscroll" id="catRow"></div>'
    + '<div id="popularWrap"></div>'
    + '<div class="section-title">Restaurants Near You</div>'
    + '<div id="restList"><div class="skel-list">'+skeletonCards(3)+'</div></div>';
 
   document.getElementById('addressBar').addEventListener('click', openAddressModal);
+  document.getElementById('locateBtn').addEventListener('click', function(e){
+    e.stopPropagation();
+    if (!navigator.geolocation){ toast('Location is not supported on this device'); return; }
+    toast('Getting your location...');
+    navigator.geolocation.getCurrentPosition(function(pos){
+      var label = 'Current location ('+pos.coords.latitude.toFixed(3)+', '+pos.coords.longitude.toFixed(3)+')';
+      setDeliveryAddress(label);
+      toast('Location set');
+      renderHome();
+    }, function(){ toast('Could not get your location — enter it manually'); });
+  });
 
   var catRow = document.getElementById('catRow');
   FOOD_CATEGORIES.forEach(function(c){
     var chip=document.createElement('button');
-    chip.className='caticon'+(c.name===activeCategory?' active':'');
-    chip.innerHTML='<span class="ci-emoji">'+c.icon+'</span><span class="ci-label">'+c.name+'</span>';
+    chip.className='catbubble'+(c.name===activeCategory?' active':'');
+    chip.innerHTML='<span class="cb-circle" style="background:'+c.bg+'">'+c.icon+'</span><span class="cb-label">'+c.name+'</span>';
     chip.addEventListener('click', function(){ activeCategory=c.name; loadAndRenderRestaurants(); refreshCatChips(); });
     catRow.appendChild(chip);
   });
@@ -720,8 +747,8 @@ function openAddressModal(){
 }
 
 function refreshCatChips(){
-  document.querySelectorAll('#catRow .caticon').forEach(function(chip){
-    var label = chip.querySelector('.ci-label').textContent;
+  document.querySelectorAll('#catRow .catbubble').forEach(function(chip){
+    var label = chip.querySelector('.cb-label').textContent;
     chip.classList.toggle('active', label===activeCategory);
   });
 }

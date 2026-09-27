@@ -184,6 +184,35 @@
   .roleSwitch{display:flex;gap:8px;padding:0 14px 6px;}
   .roleSwitch button{flex:1;padding:10px;border-radius:10px;border:1px solid var(--line);background:#fff;font-weight:700;font-size:13px;}
   .roleSwitch button.active{background:var(--green);color:#fff;border-color:var(--green);}
+
+  .caticon{
+    flex:0 0 auto;display:flex;flex-direction:column;align-items:center;gap:4px;
+    background:none;border:none;padding:4px 4px;width:60px;
+  }
+  .caticon .ci-emoji{
+    width:46px;height:46px;border-radius:50%;background:var(--card);border:1px solid var(--line);
+    display:flex;align-items:center;justify-content:center;font-size:22px;
+  }
+  .caticon.active .ci-emoji{background:var(--green);border-color:var(--green);}
+  .caticon .ci-label{font-size:10.5px;font-weight:600;color:var(--muted);white-space:nowrap;}
+  .caticon.active .ci-label{color:var(--green-dark);}
+
+  .pcard{
+    flex:0 0 auto;width:150px;background:var(--card);border:1px solid var(--line);
+    border-radius:var(--radius);overflow:hidden;
+  }
+  .pcard img{width:100%;height:90px;object-fit:cover;background:var(--line);}
+  .pcard .pname{font-size:12.5px;font-weight:700;padding:6px 8px 0;}
+  .pcard .pmeta{font-size:11px;color:var(--muted);padding:2px 8px 8px;}
+  .promoTag{
+    position:absolute;top:6px;left:6px;background:var(--amber);color:#3a2600;
+    font-size:10px;font-weight:800;padding:2px 7px;border-radius:999px;
+  }
+
+  .skel-block{background:linear-gradient(90deg,#EDEBE6 25%,#F5F4F1 37%,#EDEBE6 63%);background-size:400% 100%;animation:skel 1.4s ease infinite;}
+  .skel-line{height:11px;border-radius:6px;margin:6px 0;background:linear-gradient(90deg,#EDEBE6 25%,#F5F4F1 37%,#EDEBE6 63%);background-size:400% 100%;animation:skel 1.4s ease infinite;}
+  .rcard.skel .cover{background:linear-gradient(90deg,#EDEBE6 25%,#F5F4F1 37%,#EDEBE6 63%);background-size:400% 100%;animation:skel 1.4s ease infinite;}
+  @keyframes skel{0%{background-position:100% 50%;}100%{background-position:0 50%;}}
 </style>
 </head>
 <body>
@@ -605,9 +634,13 @@ function escapeHtml(s){
 }
 
 /* =========================================================================
-   HOME / DISCOVERY
+   HOME / DISCOVERY  (address bar, icon categories, popular row, main list)
    ========================================================================= */
-var FOOD_CATEGORIES = ["All","Rice","Swallow","Grills","Pastries","Drinks","Soups","Snacks","Continental"];
+var FOOD_CATEGORIES = [
+  {name:"All", icon:"🍽️"}, {name:"Rice", icon:"🍚"}, {name:"Swallow", icon:"🍲"},
+  {name:"Grills", icon:"🍢"}, {name:"Pastries", icon:"🥐"}, {name:"Drinks", icon:"🥤"},
+  {name:"Soups", icon:"🍜"}, {name:"Snacks", icon:"🍟"}, {name:"Continental", icon:"🍝"}
+];
 var activeCategory = "All";
 var searchQuery = "";
 
@@ -619,21 +652,40 @@ function ensureFoodsCache(cb){
   });
 }
 
+function getDeliveryAddress(){
+  try { return localStorage.getItem('ocrown_address') || ''; } catch(e){ return ''; }
+}
+function setDeliveryAddress(addr){
+  try { localStorage.setItem('ocrown_address', addr); } catch(e){}
+}
+
 function renderHome(){
+  var addr = getDeliveryAddress();
   $app.innerHTML = ''
-   + '<div class="hero"><h1>Good food, delivered.</h1><p>Order from restaurants near you across Nigeria.</p></div>'
+   + '<div class="hero" style="padding-bottom:18px">' +
+       '<div id="addressBar" style="display:flex;align-items:center;gap:8px;cursor:pointer;background:rgba(255,255,255,.15);border-radius:10px;padding:9px 12px;margin-bottom:12px">' +
+         '<span style="font-size:16px">📍</span>' +
+         '<div style="flex:1;overflow:hidden"><div style="font-size:10.5px;opacity:.85;line-height:1.2">DELIVER TO</div>' +
+         '<div style="font-size:13px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+(addr?escapeHtml(addr):'Set your delivery address')+'</div></div>' +
+         '<span style="font-size:12px;opacity:.85">Change ›</span>' +
+       '</div>' +
+       '<h1 style="font-size:19px">Good food, delivered fast.</h1>' +
+     '</div>'
    + '<div class="field" style="margin:12px 14px 4px"><input id="homeSearch" placeholder="Search restaurants or food..." value="'+escapeHtml(searchQuery)+'"></div>'
    + '<div class="section-title">Categories</div>'
    + '<div class="hscroll" id="catRow"></div>'
-   + '<div class="section-title">Restaurants</div>'
-   + '<div id="restList"><div class="empty">Loading...</div></div>';
+   + '<div id="popularWrap"></div>'
+   + '<div class="section-title">Restaurants Near You</div>'
+   + '<div id="restList"><div class="skel-list">'+skeletonCards(3)+'</div></div>';
+
+  document.getElementById('addressBar').addEventListener('click', openAddressModal);
 
   var catRow = document.getElementById('catRow');
   FOOD_CATEGORIES.forEach(function(c){
     var chip=document.createElement('button');
-    chip.className='catchip'+(c===activeCategory?' active':'');
-    chip.textContent=c;
-    chip.addEventListener('click', function(){ activeCategory=c; loadAndRenderRestaurants(); refreshCatChips(); });
+    chip.className='caticon'+(c.name===activeCategory?' active':'');
+    chip.innerHTML='<span class="ci-emoji">'+c.icon+'</span><span class="ci-label">'+c.name+'</span>';
+    chip.addEventListener('click', function(){ activeCategory=c.name; loadAndRenderRestaurants(); refreshCatChips(); });
     catRow.appendChild(chip);
   });
 
@@ -647,9 +699,30 @@ function renderHome(){
   loadAndRenderRestaurants();
 }
 
+function skeletonCards(n){
+  var out='';
+  for (var i=0;i<n;i++) out += '<div class="rcard skel"><div class="cover skel-block"></div><div class="body"><div class="skel-line" style="width:60%"></div><div class="skel-line" style="width:40%"></div></div></div>';
+  return out;
+}
+
+function openAddressModal(){
+  var current = getDeliveryAddress();
+  var html = '<h3>Delivery Address</h3>' +
+    '<div class="field"><label>Where should we deliver?</label><textarea id="addrInput">'+escapeHtml(current)+'</textarea></div>' +
+    '<div style="padding:0 14px"><button class="btn block" id="saveAddrBtn">Save Address</button></div>';
+  openModal(html);
+  document.getElementById('saveAddrBtn').addEventListener('click', function(){
+    var val = document.getElementById('addrInput').value.trim();
+    setDeliveryAddress(val);
+    closeModal();
+    renderHome();
+  });
+}
+
 function refreshCatChips(){
-  document.querySelectorAll('#catRow .catchip').forEach(function(chip){
-    chip.classList.toggle('active', chip.textContent===activeCategory);
+  document.querySelectorAll('#catRow .caticon').forEach(function(chip){
+    var label = chip.querySelector('.ci-label').textContent;
+    chip.classList.toggle('active', label===activeCategory);
   });
 }
 
@@ -658,6 +731,8 @@ function loadAndRenderRestaurants(){
   if (!restList) return;
   colGet('restaurants', [['status','==','APPROVED']], function(list){
     ensureFoodsCache(function(foods){
+      renderPopularRow(list);
+
       var q = searchQuery.trim().toLowerCase();
       var filtered = list.filter(function(r){
         var categoryMatch = activeCategory==='All' || (r.categories||[]).indexOf(activeCategory)>-1;
@@ -669,20 +744,46 @@ function loadAndRenderRestaurants(){
       });
       if (filtered.length===0){ restList.innerHTML='<div class="empty">'+(q?'No matches for "'+escapeHtml(searchQuery)+'"':'No restaurants yet in this category. Check back soon!')+'</div>'; return; }
       restList.innerHTML='';
-      sortByCreated(filtered).forEach(function(r){
-        var card=document.createElement('div');
-        card.className='rcard';
-        card.innerHTML =
-          '<img class="cover" src="'+(r.coverUrl||placeholderImg())+'">' +
-          '<div class="body"><div class="row1"><div class="name">'+escapeHtml(r.name)+'</div>'+
-          '<span class="status '+(r.isOpen===false?'closed':'open')+'">'+(r.isOpen===false?'Closed':'Open')+'</span></div>'+
-          '<div class="meta">'+escapeHtml((r.categories||[]).join(', '))+' · '+ratingLabel(r)+
-          ' · '+fmtNaira(r.deliveryFee!=null?r.deliveryFee:state.settings.deliveryFee)+' delivery</div></div>';
-        card.addEventListener('click', function(){ go({name:'restaurant', id:r.id}); });
-        restList.appendChild(card);
-      });
+      sortByCreated(filtered).forEach(function(r){ restList.appendChild(restaurantCardEl(r)); });
     });
   });
+}
+
+function renderPopularRow(list){
+  var wrap = document.getElementById('popularWrap');
+  if (!wrap) return;
+  var popular = list.filter(function(r){ return r.reviewCount>0; })
+    .sort(function(a,b){ return b.rating-a.rating; }).slice(0,6);
+  if (popular.length===0){ wrap.innerHTML=''; return; }
+  var html = '<div class="section-title">Popular Now</div><div class="hscroll" id="popularRow"></div>';
+  wrap.innerHTML = html;
+  var row = document.getElementById('popularRow');
+  popular.forEach(function(r){
+    var card=document.createElement('div');
+    card.className='pcard';
+    card.innerHTML =
+      '<div style="position:relative">' +
+        '<img src="'+(r.coverUrl||placeholderImg())+'">' +
+        '<span class="promoTag">🔥 Popular</span>' +
+      '</div>' +
+      '<div class="pname">'+escapeHtml(r.name)+'</div>' +
+      '<div class="pmeta">'+ratingLabel(r)+'</div>';
+    card.addEventListener('click', function(){ go({name:'restaurant', id:r.id}); });
+    row.appendChild(card);
+  });
+}
+
+function restaurantCardEl(r){
+  var card=document.createElement('div');
+  card.className='rcard';
+  card.innerHTML =
+    '<img class="cover" src="'+(r.coverUrl||placeholderImg())+'">' +
+    '<div class="body"><div class="row1"><div class="name">'+escapeHtml(r.name)+'</div>'+
+    '<span class="status '+(r.isOpen===false?'closed':'open')+'">'+(r.isOpen===false?'Closed':'Open')+'</span></div>'+
+    '<div class="meta">'+escapeHtml((r.categories||[]).join(', '))+' · '+ratingLabel(r)+
+    ' · '+fmtNaira(r.deliveryFee!=null?r.deliveryFee:state.settings.deliveryFee)+' delivery</div></div>';
+  card.addEventListener('click', function(){ go({name:'restaurant', id:r.id}); });
+  return card;
 }
 function ratingLabel(r){
   if (r.reviewCount) return '⭐ '+r.rating.toFixed(1)+' ('+r.reviewCount+')';

@@ -417,7 +417,7 @@ function notifyUser(uidTarget, msg){
 auth.onAuthStateChanged(function(user){
   state.user = user;
   if (!user){ state.role='guest'; state.profile=null; render(); return; }
-  loadProfileWithRetry(user, 5);
+  loadProfileWithRetry(user, 4);
 });
 
 // Right after signup, the users/{uid} doc write can still be in flight when
@@ -429,16 +429,46 @@ function loadProfileWithRetry(user, retriesLeft){
       setTimeout(function(){ loadProfileWithRetry(user, retriesLeft-1); }, 700);
       return;
     }
-    state.profile = p || {role:'customer', status:'ACTIVE'};
-    state.role = state.profile.role || 'customer';
-    var isAdminEmail = user.email && user.email.trim().toLowerCase() === ADMIN_EMAIL.toLowerCase();
-    if (isAdminEmail && state.role !== 'admin'){
-      state.role = 'admin';
-      state.profile = Object.assign(state.profile, {role:'admin', status:'ACTIVE'});
-      docSet('users', user.uid, {role:'admin', status:'ACTIVE'});
+    if (!p){
+      // The role document may be permanently missing — e.g. an admin created
+      // this restaurant/rider account, and security rules only allow a user
+      // to create their OWN users/{uid} doc. Self-heal it here, since this
+      // client IS that owner and is allowed to write it.
+      selfHealMissingProfile(user, function(healed){ finishProfileLoad(user, healed); });
+      return;
     }
-    loadSettings(function(){ render(); loadNotifCount(); });
+    finishProfileLoad(user, p);
   });
+}
+
+function selfHealMissingProfile(user, cb){
+  docGet('restaurants', user.uid, function(r){
+    if (r){
+      var profile = {email:user.email, role:'restaurant', status:'ACTIVE'};
+      docSet('users', user.uid, profile);
+      cb(profile); return;
+    }
+    docGet('riders', user.uid, function(rd){
+      if (rd){
+        var profile2 = {email:user.email, role:'rider', status:'ACTIVE', name:rd.name||'', phone:rd.phone||''};
+        docSet('users', user.uid, profile2);
+        cb(profile2); return;
+      }
+      cb(null);
+    });
+  });
+}
+
+function finishProfileLoad(user, p){
+  state.profile = p || {email:user.email, role:'customer', status:'ACTIVE'};
+  state.role = state.profile.role || 'customer';
+  var isAdminEmail = user.email && user.email.trim().toLowerCase() === ADMIN_EMAIL.toLowerCase();
+  if (isAdminEmail && state.role !== 'admin'){
+    state.role = 'admin';
+    state.profile = Object.assign(state.profile, {role:'admin', status:'ACTIVE'});
+    docSet('users', user.uid, {role:'admin', status:'ACTIVE'});
+  }
+  loadSettings(function(){ render(); loadNotifCount(); });
 }
 
 function loadSettings(cb){
